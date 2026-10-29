@@ -18,6 +18,7 @@ import { INITIAL_ROOMS, INITIAL_RESERVATIONS, api } from './services/api';
 import BookingModal from './components/modals/BookingModal';
 import ReceiptModal from './components/modals/ReceiptModal';
 import MenuDetailModal from './components/modals/MenuDetailModal';
+import EfectosNavidad from './components/common/EfectosNavidad';
 
 /* ---------- DATOS COMPLETOS DE LA CARTA Y PROMOCIONES ---------- */
 export const MENU_CATEGORIES_DATA = [
@@ -356,6 +357,7 @@ function App() {
 
   return (
     <div className="hotel-container">
+      <EfectosNavidad />
       {/* NAVBAR */}
       <header className="navbar">
         <div 
