@@ -1,6 +1,6 @@
 // API service for Hotel Wimbledon backend integration with robust normalization and offline fallback
 
-const API_BASE_URL = 'http://localhost:8080/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
 
 // Initial fallback mock data matching the exact mockups
 export const INITIAL_ROOMS = [
