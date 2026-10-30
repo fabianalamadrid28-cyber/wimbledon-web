@@ -124,18 +124,13 @@ export const api = {
   },
 
   async updateEstadoHabitacion(id, nuevoEstado) {
-    try {
-      const res = await fetch(`${API_BASE_URL}/habitaciones/${id}/estado`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: nuevoEstado })
-      });
-      if (res.ok) {
-        const saved = await res.json();
-        return normalizeRoom(saved);
-      }
-    } catch (e) {}
-    return { id, estado: nuevoEstado };
+    const res = await fetch(`${API_BASE_URL}/habitaciones/${id}/estado`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado: nuevoEstado })
+    }).catch(() => { throw new Error('Sin conexión con el servidor'); });
+    if (!res.ok) throw new Error((await res.text()) || `Error ${res.status}`);
+    return normalizeRoom(await res.json());
   },
 
   // Reservas
@@ -153,18 +148,27 @@ export const api = {
   },
 
   async updateEstadoReserva(id, nuevoEstado) {
-    try {
-      const res = await fetch(`${API_BASE_URL}/reservas/${id}/estado`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: nuevoEstado })
-      });
-      if (res.ok) {
-        const saved = await res.json();
-        return normalizeReservation(saved, 0);
-      }
-    } catch (e) {}
-    return { id, estado: nuevoEstado };
+    const res = await fetch(`${API_BASE_URL}/reservas/${id}/estado`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado: nuevoEstado })
+    }).catch(() => { throw new Error('Sin conexión con el servidor'); });
+    if (!res.ok) throw new Error((await res.text()) || `Error ${res.status}`);
+    return normalizeReservation(await res.json(), 0);
+  },
+
+  // Lectura estricta para los paneles: sin datos de ejemplo si el servidor falla (lanza el error)
+  async refrescarTodo() {
+    const [hr, rr] = await Promise.all([
+      fetch(`${API_BASE_URL}/habitaciones`),
+      fetch(`${API_BASE_URL}/reservas`)
+    ]).catch(() => { throw new Error('Sin conexión con el servidor'); });
+    if (!hr.ok || !rr.ok) throw new Error(`El servidor respondió ${!hr.ok ? hr.status : rr.status}`);
+    const [rooms, reservas] = await Promise.all([hr.json(), rr.json()]);
+    return {
+      rooms: rooms.map(normalizeRoom),
+      reservas: reservas.map((r, i) => normalizeReservation(r, i))
+    };
   },
 
   async createReserva(reservaData) {
