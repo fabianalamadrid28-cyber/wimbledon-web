@@ -15,6 +15,7 @@ import {
   CheckCircle2 
 } from 'lucide-react';
 import { INITIAL_ROOMS, INITIAL_RESERVATIONS, api } from './services/api';
+import useLiveSync from './services/useLiveSync';
 import BookingModal from './components/modals/BookingModal';
 import ReceiptModal from './components/modals/ReceiptModal';
 import MenuDetailModal from './components/modals/MenuDetailModal';
@@ -228,17 +229,8 @@ function App() {
   const [calendarioActivo, setCalendarioActivo] = useState(null);
   const [diaSeleccionadoCal, setDiaSeleccionadoCal] = useState(null);
 
-  // Cargar datos iniciales del backend si está encendido
-  useEffect(() => {
-    async function initData() {
-      const dbRooms = await api.getHabitaciones();
-      if (dbRooms && dbRooms.length > 0) setRooms(dbRooms);
-
-      const dbRes = await api.getReservas();
-      if (dbRes && dbRes.length > 0) setReservations(dbRes);
-    }
-    initData();
-  }, []);
+  // Datos del backend en vivo (carga inicial + refresco cada 10 s)
+  useLiveSync(setRooms, setReservations);
 
   // Soporte directo para hash en la URL (ej: localhost:5173/#admin o /#recepcion)
   useEffect(() => {
@@ -312,21 +304,29 @@ function App() {
 
   // Confirmar y Guardar Reserva en Base de Datos y Estado Central
   const handleConfirmBooking = async (formData) => {
-    setIsBookingModalOpen(false);
-
     // Guardar vía API (conecta a POST /api/v1/reservas o fallback local)
-    const nuevaReserva = await api.createReserva(formData);
+    let nuevaReserva;
+    try {
+      nuevaReserva = await api.createReserva(formData);
+    } catch (e) {
+      // Rechazada por el backend (p. ej. solapamiento): se mantiene el formulario abierto
+      alert(e.message);
+      api.syncAll(setRooms, setReservations);
+      return;
+    }
+    setIsBookingModalOpen(false);
 
     // Agregar de inmediato a la lista reactiva de reservas
     setReservations(prev => [nuevaReserva, ...prev]);
 
-    // Marcar habitación como OCUPADA si estaba disponible
+    // La habitación deja de estar disponible mientras la reserva esté vigente
     setRooms(prevRooms => prevRooms.map(r => {
-      if (String(r.numero) === String(formData.habitacion)) {
-        return { ...r, estado: 'OCUPADA' };
+      if (String(r.numero) === String(formData.habitacion) && r.estado === 'DISPONIBLE') {
+        return { ...r, estado: 'RESERVADA' };
       }
       return r;
     }));
+    api.syncAll(setRooms, setReservations);
 
     // Abrir de inmediato la Boleta de Pago oficial
     setLatestReservation({

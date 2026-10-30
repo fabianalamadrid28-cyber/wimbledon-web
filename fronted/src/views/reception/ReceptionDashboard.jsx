@@ -20,6 +20,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { DonutChartSvg } from '../../components/common/Charts';
+import { api, aplicarEstadoReservaLocal } from '../../services/api';
 import GuestDetailModal from '../../components/modals/GuestDetailModal';
 
 export default function ReceptionDashboard({
@@ -36,26 +37,22 @@ export default function ReceptionDashboard({
   const [selectedGuestReservation, setSelectedGuestReservation] = useState(safeReservations[0] || null);
   const [isGuestDetailOpen, setIsGuestDetailOpen] = useState(false);
 
-  // Handle Check-in action
-  const handlePerformCheckin = (resId) => {
-    setReservations(prev => prev.map(r => {
-      if (r.id === resId) {
-        return { ...r, estado: 'Check-in' };
-      }
-      return r;
-    }));
-    alert("¡Check-in realizado con éxito! La habitación ahora figura como Ocupada.");
+  // Cambia el estado de la reserva (y de su habitación) en pantalla, lo guarda en el backend y re-sincroniza
+  const cambiarEstadoReserva = async (resId, nuevoEstado) => {
+    const reserva = safeReservations.find(r => r.id === resId);
+    if (!reserva) return;
+    aplicarEstadoReservaLocal(setReservations, setRooms, reserva, nuevoEstado);
+    await api.updateEstadoReserva(resId, nuevoEstado);
+    api.syncAll(setRooms, setReservations);
   };
 
-  // Handle Confirm action
-  const handleConfirmReservation = (resId) => {
-    setReservations(prev => prev.map(r => {
-      if (r.id === resId) {
-        return { ...r, estado: 'Confirmada' };
-      }
-      return r;
-    }));
-    alert("¡Reserva confirmada exitosamente!");
+  const handlePerformCheckin = (resId) => cambiarEstadoReserva(resId, 'Check-in');
+  const handleConfirmReservation = (resId) => cambiarEstadoReserva(resId, 'Confirmada');
+  const handleFinalizeReservation = (resId) => cambiarEstadoReserva(resId, 'Finalizada');
+  const handleCancelReservation = (resId) => {
+    if (window.confirm("¿Cancelar esta reserva? La habitación quedará libre.")) {
+      cambiarEstadoReserva(resId, 'Cancelada');
+    }
   };
 
   // Filter reservations based on active tab
@@ -239,13 +236,22 @@ export default function ReceptionDashboard({
                           >
                             Confirmar
                           </button>
-                        ) : (
+                        ) : String(res.estado || '').toLowerCase() === 'check-in' ? (
                           <button 
                             className="btn-checkin-action" 
                             style={{ backgroundColor: '#10b981' }}
-                            onClick={(e) => { e.stopPropagation(); alert(`Habitación ${res.habitacion} registrada correctamente.`); }}
+                            onClick={(e) => { e.stopPropagation(); handleFinalizeReservation(res.id); }}
                           >
-                            Activa
+                            Finalizar (check-out)
+                          </button>
+                        ) : null}
+                        {['pendiente', 'confirmada'].includes(String(res.estado || '').toLowerCase()) && (
+                          <button 
+                            className="btn-action-icon"
+                            title="Cancelar reserva"
+                            onClick={(e) => { e.stopPropagation(); handleCancelReservation(res.id); }}
+                          >
+                            ✕
                           </button>
                         )}
                         <button 

@@ -4,7 +4,8 @@ import TopHeader from '../components/layout/TopHeader';
 import AdminDashboard from './admin/AdminDashboard';
 import ReceptionDashboard from './reception/ReceptionDashboard';
 import HousekeepingDashboard from './housekeeping/HousekeepingDashboard';
-import { INITIAL_ROOMS, INITIAL_RESERVATIONS, api } from '../services/api';
+import { INITIAL_ROOMS, INITIAL_RESERVATIONS } from '../services/api';
+import useLiveSync from '../services/useLiveSync';
 
 export default function DashboardContainer({ 
   initialRole = 'ADMIN', 
@@ -53,20 +54,8 @@ export default function DashboardContainer({
   const reservations = propReservations || internalReservations;
   const setReservations = propSetReservations || setInternalReservations;
 
-  // Fetch from backend API if available and not supplied by parent
-  useEffect(() => {
-    if (propRooms && propReservations) return;
-    let isMounted = true;
-    async function loadData() {
-      const dbRooms = await api.getHabitaciones();
-      if (isMounted && dbRooms && dbRooms.length > 0) setRooms(dbRooms);
-
-      const dbReservas = await api.getReservas();
-      if (isMounted && dbReservas && dbReservas.length > 0) setReservations(dbReservas);
-    }
-    loadData();
-    return () => { isMounted = false; };
-  }, [propRooms, propReservations, setRooms, setReservations]);
+  // Datos en vivo del backend si el padre no los provee
+  useLiveSync(setRooms, setReservations, { enabled: !(propRooms && propReservations) });
 
   // User meta by role
   const getUserProfile = () => {

@@ -12,6 +12,7 @@ import {
   RotateCcw,
   DoorClosed
 } from 'lucide-react';
+import { api } from '../../services/api';
 import HousekeepingChecklistModal from '../../components/modals/HousekeepingChecklistModal';
 import MaintenanceReportModal from '../../components/modals/MaintenanceReportModal';
 
@@ -26,14 +27,16 @@ export default function HousekeepingDashboard({
   const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false);
   const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
 
+  // Cambia el estado en pantalla, lo guarda en el backend y re-sincroniza
+  const cambiarEstadoHabitacion = async (roomId, nuevoEstado) => {
+    setRooms(prev => prev.map(r => r.id === roomId ? { ...r, estado: nuevoEstado } : r));
+    await api.updateEstadoHabitacion(roomId, nuevoEstado);
+    api.syncAll(setRooms, () => {});
+  };
+
   // Transition: Iniciar Limpieza (moves to EN_PROCESO)
   const handleStartCleaning = (roomId) => {
-    setRooms(prev => prev.map(r => {
-      if (r.id === roomId) {
-        return { ...r, estado: 'EN_PROCESO' };
-      }
-      return r;
-    }));
+    cambiarEstadoHabitacion(roomId, 'EN_PROCESO');
   };
 
   // Open checklist to finalize
@@ -44,12 +47,7 @@ export default function HousekeepingDashboard({
 
   // Complete cleaning from checklist
   const handleFinishCleaning = (roomId, notes) => {
-    setRooms(prev => prev.map(r => {
-      if (r.id === roomId) {
-        return { ...r, estado: 'DISPONIBLE' };
-      }
-      return r;
-    }));
+    cambiarEstadoHabitacion(roomId, 'DISPONIBLE');
     alert(`¡Habitación lista e inspeccionada! Ahora figura como Disponible en Recepción.`);
   };
 
@@ -61,23 +59,13 @@ export default function HousekeepingDashboard({
 
   // Submit maintenance
   const handleSubmitMaintenance = (roomId, reportData) => {
-    setRooms(prev => prev.map(r => {
-      if (r.id === roomId) {
-        return { ...r, estado: 'MANTENIMIENTO' };
-      }
-      return r;
-    }));
+    cambiarEstadoHabitacion(roomId, 'MANTENIMIENTO');
     alert(`Habitación puesta en mantenimiento por: ${reportData.motivo}`);
   };
 
   // Reset to pending cleaning
   const handleMarkAsDirty = (roomId) => {
-    setRooms(prev => prev.map(r => {
-      if (r.id === roomId) {
-        return { ...r, estado: 'LIMPIEZA_PENDIENTE' };
-      }
-      return r;
-    }));
+    cambiarEstadoHabitacion(roomId, 'LIMPIEZA_PENDIENTE');
   };
 
   // Filters
@@ -247,6 +235,7 @@ export default function HousekeepingDashboard({
                   {isReady && '✅ Lista'}
                   {isMaintenance && '🔧 Mantenimiento'}
                   {room.estado === 'OCUPADA' && '🔵 Ocupada'}
+                  {room.estado === 'RESERVADA' && '📌 Reservada'}
                 </span>
               </div>
 

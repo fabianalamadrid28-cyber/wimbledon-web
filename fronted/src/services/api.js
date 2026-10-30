@@ -51,6 +51,7 @@ export function normalizeReservation(item, index) {
   else if (estadoStr.toUpperCase() === 'PENDIENTE') estadoStr = 'Pendiente';
   else if (estadoStr.toUpperCase() === 'CHECKIN' || estadoStr.toUpperCase() === 'CHECK-IN') estadoStr = 'Check-in';
   else if (estadoStr.toUpperCase() === 'CANCELADA') estadoStr = 'Cancelada';
+  else if (estadoStr.toUpperCase() === 'FINALIZADA') estadoStr = 'Finalizada';
 
   return {
     id: item.id || index + 1,
@@ -66,7 +67,8 @@ export function normalizeReservation(item, index) {
     estado: estadoStr,
     total: item.totalPago != null ? parseFloat(item.totalPago) : (item.total || 480.00),
     email: item.emailHuesped || item.email || 'huesped@wimbledon.com',
-    telefono: item.telefonoWhatsApp || item.telefono || '+51 987 654 321'
+    telefono: item.telefonoWhatsApp || item.telefono || '+51 987 654 321',
+    creadaEn: item.creadaEn || null
   };
 }
 
@@ -91,9 +93,45 @@ export function normalizeRoom(room) {
   };
 }
 
+// Etiqueta de la UI -> enum del backend
+const ESTADO_RESERVA_API = {
+  'Pendiente': 'PENDIENTE',
+  'Confirmada': 'CONFIRMADA',
+  'Check-in': 'CHECKIN',
+  'Finalizada': 'FINALIZADA',
+  'Cancelada': 'CANCELADA'
+};
+
+// Estado de habitación que corresponde a un estado de reserva (mismas reglas que el backend)
+export function aplicarEstadoReservaLocal(setReservations, setRooms, reserva, nuevoEstado) {
+  setReservations(prev => prev.map(r => r.id === reserva.id ? { ...r, estado: nuevoEstado } : r));
+  setRooms(prev => prev.map(room => {
+    if (String(room.numero) !== String(reserva.habitacion)) return room;
+    if (nuevoEstado === 'Pendiente' || nuevoEstado === 'Confirmada') {
+      return room.estado === 'DISPONIBLE' ? { ...room, estado: 'RESERVADA' } : room;
+    }
+    if (nuevoEstado === 'Check-in') return { ...room, estado: 'OCUPADA' };
+    if (nuevoEstado === 'Finalizada') return { ...room, estado: 'LIMPIEZA_PENDIENTE' };
+    if (nuevoEstado === 'Cancelada' && (room.estado === 'RESERVADA' || room.estado === 'OCUPADA')) {
+      return { ...room, estado: 'DISPONIBLE' };
+    }
+    return room;
+  }));
+}
+
 export const api = {
+  // Recarga habitaciones y reservas desde el backend; si no responde, deja el estado local intacto
+  async syncAll(setRooms, setReservations) {
+    const [dbRooms, dbReservas] = await Promise.all([
+      api.getHabitaciones({ strict: true }),
+      api.getReservas({ strict: true })
+    ]);
+    if (dbRooms && dbRooms.length > 0) setRooms(dbRooms);
+    if (dbReservas && dbReservas.length > 0) setReservations(dbReservas);
+  },
+
   // Habitaciones
-  async getHabitaciones() {
+  async getHabitaciones({ strict = false } = {}) {
     try {
       const res = await fetch(`${API_BASE_URL}/habitaciones`);
       if (res.ok) {
@@ -105,6 +143,7 @@ export const api = {
     } catch (e) {
       // Backend not reached, fall back to mock
     }
+    if (strict) return null;
     return INITIAL_ROOMS.map(normalizeRoom);
   },
 
@@ -123,6 +162,24 @@ export const api = {
     return normalizeRoom({ ...roomData, id });
   },
 
+  async createHabitacion(roomData) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/habitaciones`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(roomData)
+      });
+      if (res.ok) return normalizeRoom(await res.json());
+    } catch (e) {}
+    return normalizeRoom({ ...roomData, id: Date.now() });
+  },
+
+  async deleteHabitacion(id) {
+    try {
+      await fetch(`${API_BASE_URL}/habitaciones/${id}`, { method: 'DELETE' });
+    } catch (e) {}
+  },
+
   async updateEstadoHabitacion(id, nuevoEstado) {
     try {
       const res = await fetch(`${API_BASE_URL}/habitaciones/${id}/estado`, {
@@ -139,7 +196,7 @@ export const api = {
   },
 
   // Reservas
-  async getReservas() {
+  async getReservas({ strict = false } = {}) {
     try {
       const res = await fetch(`${API_BASE_URL}/reservas`);
       if (res.ok) {
@@ -149,6 +206,7 @@ export const api = {
         }
       }
     } catch (e) {}
+    if (strict) return null;
     return INITIAL_RESERVATIONS.map((r, i) => normalizeReservation(r, i));
   },
 
@@ -157,7 +215,7 @@ export const api = {
       const res = await fetch(`${API_BASE_URL}/reservas/${id}/estado`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: nuevoEstado })
+        body: JSON.stringify({ estado: ESTADO_RESERVA_API[nuevoEstado] || String(nuevoEstado).toUpperCase() })
       });
       if (res.ok) {
         const saved = await res.json();
@@ -192,7 +250,9 @@ export const api = {
         const saved = await res.json();
         return normalizeReservation(saved, 0);
       }
+      if (res.status === 400) throw new Error(await res.text());
     } catch (e) {
+      if (!(e instanceof TypeError)) throw e;
       console.warn('Backend API not reached for createReserva, using local mock store', e);
     }
     // Local fallback with complete details
@@ -210,7 +270,7 @@ export const api = {
       checkOut: reservaData.checkOut || '30/10/2026',
       checkInDisplay: reservaData.checkInDisplay || reservaData.checkIn || '29/10/2026',
       checkOutDisplay: reservaData.checkOutDisplay || reservaData.checkOut || '30/10/2026',
-      estado: 'Confirmada',
+      estado: 'Pendiente',
       total: parseFloat(reservaData.total || 250.00),
       email: reservaData.email || 'cliente@wimbledon.com',
       telefono: reservaData.telefono || '+51 987 654 321',
