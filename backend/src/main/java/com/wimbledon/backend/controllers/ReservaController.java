@@ -1,5 +1,6 @@
 package com.wimbledon.backend.controllers;
 
+import com.wimbledon.backend.services.TransicionInvalidaException;
 import com.wimbledon.backend.entities.Reserva;
 import com.wimbledon.backend.enums.EstadoReserva;
 import com.wimbledon.backend.services.ReservaService;
@@ -48,6 +49,8 @@ public class ReservaController {
         try {
             Reserva actualizada = reservaService.actualizarReserva(id, datos);
             return ResponseEntity.ok(actualizada);
+        } catch (TransicionInvalidaException e) {
+            return ResponseEntity.status(409).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

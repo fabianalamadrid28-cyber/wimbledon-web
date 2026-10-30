@@ -2,6 +2,7 @@ package com.wimbledon.backend.services;
 
 import com.wimbledon.backend.entities.Habitacion;
 import com.wimbledon.backend.entities.Reserva;
+import com.wimbledon.backend.enums.EstadoHabitacion;
 import com.wimbledon.backend.enums.EstadoReserva;
 import com.wimbledon.backend.repositories.HabitacionRepository;
 import com.wimbledon.backend.repositories.ReservaRepository;
@@ -75,7 +76,10 @@ public class ReservaService {
         if (datos.getTelefonoWhatsApp() != null) res.setTelefonoWhatsApp(datos.getTelefonoWhatsApp());
         if (datos.getFechaCheckIn() != null) res.setFechaCheckIn(datos.getFechaCheckIn());
         if (datos.getFechaCheckOut() != null) res.setFechaCheckOut(datos.getFechaCheckOut());
-        if (datos.getEstado() != null) res.setEstado(datos.getEstado());
+        if (datos.getEstado() != null) {
+            TransicionEstados.validar(res.getEstado(), datos.getEstado());
+            res.setEstado(datos.getEstado());
+        }
         if (datos.getTotalPago() != null) res.setTotalPago(datos.getTotalPago());
         if (datos.getNotasAdicionales() != null) res.setNotasAdicionales(datos.getNotasAdicionales());
 
@@ -92,8 +96,27 @@ public class ReservaService {
     public Reserva cambiarEstado(Long id, EstadoReserva nuevoEstado) {
         Reserva res = reservaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Reserva no encontrada con ID: " + id));
+        TransicionEstados.validar(res.getEstado(), nuevoEstado);
+        if (res.getEstado() != nuevoEstado) {
+            sincronizarHabitacion(res, nuevoEstado);
+        }
         res.setEstado(nuevoEstado);
         return reservaRepository.save(res);
+    }
+
+    /** Check-in ocupa la habitación; finalizar la deja pendiente de limpieza. Un solo lugar, todos los paneles ven lo mismo. */
+    private void sincronizarHabitacion(Reserva res, EstadoReserva nuevoEstado) {
+        Habitacion hab = res.getHabitacion();
+        if (hab == null) return;
+        if (nuevoEstado == EstadoReserva.CHECKIN) {
+            TransicionEstados.validar(hab.getEstado(), EstadoHabitacion.OCUPADA);
+            hab.setEstado(EstadoHabitacion.OCUPADA);
+            habitacionRepository.save(hab);
+        } else if (nuevoEstado == EstadoReserva.FINALIZADA) {
+            TransicionEstados.validar(hab.getEstado(), EstadoHabitacion.LIMPIEZA_PENDIENTE);
+            hab.setEstado(EstadoHabitacion.LIMPIEZA_PENDIENTE);
+            habitacionRepository.save(hab);
+        }
     }
 
     @Transactional
