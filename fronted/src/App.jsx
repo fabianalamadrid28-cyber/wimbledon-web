@@ -142,114 +142,12 @@ export const MENU_CATEGORIES_DATA = [
 
 /* ---------- DATOS EDITABLES DE HABITACIONES Y OFERTAS ---------- */
 const tiposHabitaciones = [
-  {
-    id: 1, numero: '101', tipo: 'Simple', nombre: 'Suite Simple Estándar',
-    desc: 'Cama queen, ducha española y TV smart. Ideal para una escapada tranquila.',
-    desde: 'S/ 120', img: '/suite-simple.jpg',
-    capacidad: '2 personas', tamaño: '24 m²',
-    amenidades: [
-      { icono: '🛏️', texto: 'Cama queen size con sábanas de algodón 300 hilos' },
-      { icono: '🚿', texto: 'Ducha española con agua caliente 24h' },
-      { icono: '📺', texto: 'TV Smart 43" con Netflix y cable' },
-      { icono: '❄️', texto: 'Aire acondicionado y ventilador de techo' },
-      { icono: '🛁', texto: 'Baño completo con amenities de cortesía' },
-      { icono: '📶', texto: 'WiFi de alta velocidad incluido' },
-      { icono: '🔒', texto: 'Acceso con llave digital QR' },
-      { icono: '🪞', texto: 'Espejo de cuerpo entero y secador de cabello' },
-    ],
-    destacados: ['Cama Queen', 'TV Smart', 'WiFi', 'Ducha Española']
-  },
-  {
-    id: 2, numero: '102', tipo: 'Doble', nombre: 'Suite Temática Premium',
-    desc: 'Ambientes decorados con iluminación ambiental y música personalizadas.',
-    desde: 'S/ 160', img: '/suite-tematica.jpg',
-    capacidad: '2 personas', tamaño: '30 m²',
-    amenidades: [
-      { icono: '🛏️', texto: 'Cama king size con dosel y ropa de cama premium' },
-      { icono: '💡', texto: 'Iluminación LED ambiental multicolor programable' },
-      { icono: '🎵', texto: 'Sistema de sonido Bluetooth integrado en la habitación' },
-      { icono: '📺', texto: 'TV Smart 55" con streaming incluido' },
-      { icono: '🛁', texto: 'Tina de inmersión con sales de baño aromáticas' },
-      { icono: '🥂', texto: 'Minibar abastecido con bebidas y snacks de bienvenida' },
-      { icono: '🕯️', texto: 'Decoración con velas aromáticas y pétalos de rosas' },
-      { icono: '📶', texto: 'WiFi de fibra óptica de alta velocidad' },
-      { icono: '🪄', texto: 'Temática personalizable al hacer la reserva' },
-    ],
-    destacados: ['Cama King', 'Tina', 'Minibar', 'Luz Ambiental']
-  },
-  {
-    id: 3, numero: '304', tipo: 'Suite', nombre: 'Suite Automatizada VIP',
-    desc: 'Control total del ambiente desde tu celular, sin contacto con personal.',
-    desde: 'S/ 200', img: '/suite-vip.jpg',
-    capacidad: '2 personas', tamaño: '38 m²',
-    amenidades: [
-      { icono: '📱', texto: 'Control de habitación 100% desde app móvil (luces, temperatura, TV, música)' },
-      { icono: '🛏️', texto: 'Cama king size con cabecera tapizada y almohadas de pluma' },
-      { icono: '🌡️', texto: 'Climatización inteligente con termostato digital' },
-      { icono: '📺', texto: 'TV OLED 65" con sistema de sonido Dolby Atmos' },
-      { icono: '🚿', texto: 'Ducha de lluvia con cromoterapia LED' },
-      { icono: '🛁', texto: 'Bañera exenta de diseño con vista al ambiente' },
-      { icono: '🔐', texto: 'Check-in y check-out 100% digital, sin contacto físico' },
-      { icono: '🥂', texto: 'Minibar premium con champagne de bienvenida' },
-      { icono: '🎮', texto: 'Consola de videojuegos disponible a pedido' },
-      { icono: '📶', texto: 'WiFi simétrico 500 Mbps exclusivo por suite' },
-    ],
-    destacados: ['App Control', 'TV OLED 65"', 'Ducha LED', 'Check-in Digital']
-  },
-  {
-    id: 5, numero: '201', tipo: 'Suite', nombre: 'Suite con Jacuzzi',
-    desc: 'Jacuzzi privado para dos, sábanas de algodón y amenities de lujo.',
-    desde: 'S/ 220', img: '/suite-jacuzzi.jpg',
-    capacidad: '2 personas', tamaño: '35 m²',
-    amenidades: [
-      { icono: '🛁', texto: 'Jacuzzi privado para dos con burbujas y cromoterapia' },
-      { icono: '🛏️', texto: 'Cama king size con colchón ortopédico y edredón de plumas' },
-      { icono: '🧴', texto: 'Set completo de amenities de lujo (jabones, toallas y batines)' },
-      { icono: '📺', texto: 'TV Smart 55" frente al jacuzzi para total disfrute' },
-      { icono: '🥂', texto: 'Botella de espumante de bienvenida en hielo' },
-      { icono: '🕯️', texto: 'Velas aromáticas y pétalos de rosa decorativos' },
-      { icono: '🌡️', texto: 'Control de temperatura del agua del jacuzzi desde el mando' },
-      { icono: '🧖', texto: 'Sales de baño premium y aceites esenciales incluidos' },
-      { icono: '📶', texto: 'WiFi de alta velocidad con señal reforzada' },
-    ],
-    destacados: ['Jacuzzi Privado', 'Espumante', 'TV 55"', 'Amenities Lujo']
-  },
-  {
-    id: 7, numero: '203', tipo: 'Suite', nombre: 'Suite con Sauna',
-    desc: 'Sauna privado y ducha de lluvia para una experiencia completa de relajación.',
-    desde: 'S/ 240', img: '/suite-sauna.jpg',
-    capacidad: '2 personas', tamaño: '40 m²',
-    amenidades: [
-      { icono: '🔥', texto: 'Sauna finlandés privado con temperatura regulable hasta 90°C' },
-      { icono: '🚿', texto: 'Ducha de lluvia tipo tropical con función de vapor' },
-      { icono: '🛏️', texto: 'Cama king size con ropa de cama hipoalergénica' },
-      { icono: '🧖', texto: 'Zona de relax con camillas de descanso y aromaterapia' },
-      { icono: '🧴', texto: 'Kit de bienestar: toallas premium, albornoces y pantuflas' },
-      { icono: '🌿', texto: 'Difusor de aromas con aceites esenciales naturales' },
-      { icono: '📺', texto: 'TV Smart 50" en zona de relax' },
-      { icono: '🥃', texto: 'Barra de infusiones relajantes y agua mineral fría' },
-      { icono: '📶', texto: 'WiFi de alta velocidad incluido' },
-    ],
-    destacados: ['Sauna Privado', 'Ducha Vapor', 'Aromaterapia', 'Zona Relax']
-  },
-  {
-    id: 4, numero: '108', tipo: 'Suite', nombre: 'Suite con Cochera Directa',
-    desc: 'Estacionamiento privado y directo a la habitación para máxima discreción.',
-    desde: 'S/ 180', img: '/suite-cochera.jpg',
-    capacidad: '2 personas', tamaño: '32 m²',
-    amenidades: [
-      { icono: '🚗', texto: 'Cochera privada con acceso directo a la suite sin pasar por recepción' },
-      { icono: '🔐', texto: 'Puerta automática de garaje con control remoto personal' },
-      { icono: '🛏️', texto: 'Cama queen size con sábanas de microfibra premium' },
-      { icono: '📺', texto: 'TV Smart 50" con streaming de alta definición' },
-      { icono: '🎥', texto: 'Sistema CCTV y seguridad en cochera las 24h' },
-      { icono: '🛁', texto: 'Baño completo con ducha moderna y amenities' },
-      { icono: '❄️', texto: 'Aire acondicionado inverter silencioso' },
-      { icono: '🚘', texto: 'Capacidad para 1 vehículo sedán o SUV mediana' },
-      { icono: '📶', texto: 'WiFi de alta velocidad incluido' },
-    ],
-    destacados: ['Cochera Privada', 'Acceso Directo', 'CCTV 24h', 'Sin Recepción']
-  }
+  { id: 1, numero: '101', tipo: 'Simple', nombre: 'Suite Simple Estándar', desc: 'Cama queen, ducha española y TV smart. Ideal para una escapada tranquila.', desde: 'S/ 120', img: '/suite-simple.jpg' },
+  { id: 2, numero: '102', tipo: 'Doble', nombre: 'Suite Temática Premium', desc: 'Ambientes decorados con iluminación ambiental y música personalizadas.', desde: 'S/ 160', img: '/suite-tematica.jpg' },
+  { id: 3, numero: '304', tipo: 'Suite', nombre: 'Suite Automatizada VIP', desc: 'Control total del ambiente desde tu celular, sin contacto con personal.', desde: 'S/ 200', img: '/suite-vip.jpg' },
+  { id: 5, numero: '201', tipo: 'Suite', nombre: 'Suite con Jacuzzi', desc: 'Jacuzzi privado para dos, sábanas de algodón y amenities de lujo.', desde: 'S/ 220', img: '/suite-jacuzzi.jpg' },
+  { id: 7, numero: '203', tipo: 'Suite', nombre: 'Suite con Sauna', desc: 'Sauna privado y ducha de lluvia para una experiencia completa de relajación.', desde: 'S/ 240', img: '/suite-sauna.jpg' },
+  { id: 4, numero: '108', tipo: 'Suite', nombre: 'Suite con Cochera Directa', desc: 'Estacionamiento privado y directo a la habitación para máxima discreción.', desde: 'S/ 180', img: '/suite-cochera.jpg' }
 ];
 
 const ofertas = [
@@ -569,14 +467,9 @@ function App() {
                 <div className="room-compact-img-box">
                   <img src={room.img} alt={room.nombre} />
                 </div>
-                <div style={{ flex: 1 }}>
+                <div>
                   <h3 style={{ margin: 0 }}>{room.nombre}</h3>
-                  <span style={{ fontSize: '12px', color: '#D4AF37', fontWeight: 600 }}>{room.desde} · {room.tamaño} · {room.capacidad}</span>
-                  <div className="room-tags-inline">
-                    {room.destacados && room.destacados.map((tag, i) => (
-                      <span key={i} className="room-tag-badge">{tag}</span>
-                    ))}
-                  </div>
+                  <span style={{ fontSize: '12px', color: '#D4AF37', fontWeight: 600 }}>{room.desde}</span>
                 </div>
               </div>
               <div className="room-right-side" style={{ display: 'flex', gap: '8px' }}>
@@ -739,25 +632,10 @@ function App() {
           <div className="all-rooms-grid max-container" style={{ marginTop: '2rem' }}>
             {tiposHabitaciones.map((t) => (
               <article key={t.id} className="type-card">
-                <div className="media type-card-media">
-                  <Img src={t.img} alt={t.nombre} />
-                  <div className="type-card-overlay-badge">{t.tipo}</div>
-                </div>
+                <div className="media"><Img src={t.img} alt={t.nombre} /></div>
                 <div className="type-body">
-                  <div className="type-card-meta">
-                    <span className="type-card-size">📐 {t.tamaño}</span>
-                    <span className="type-card-capacity">👥 {t.capacidad}</span>
-                  </div>
                   <h3>{t.nombre}</h3>
                   <p>{t.desc}</p>
-                  <div className="type-amenidades-grid">
-                    {t.amenidades && t.amenidades.map((am, i) => (
-                      <div key={i} className="type-amenidad-item">
-                        <span className="amenidad-icono">{am.icono}</span>
-                        <span className="amenidad-texto">{am.texto}</span>
-                      </div>
-                    ))}
-                  </div>
                   <div className="type-foot">
                     <span className="price-tag">Desde {t.desde}</span>
                     <button 
