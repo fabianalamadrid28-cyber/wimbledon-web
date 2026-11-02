@@ -86,7 +86,10 @@ public class ReservaService {
         if (datos.getTelefonoWhatsApp() != null) res.setTelefonoWhatsApp(datos.getTelefonoWhatsApp());
         if (datos.getFechaCheckIn() != null) res.setFechaCheckIn(datos.getFechaCheckIn());
         if (datos.getFechaCheckOut() != null) res.setFechaCheckOut(datos.getFechaCheckOut());
-        if (datos.getEstado() != null) res.setEstado(datos.getEstado());
+        if (datos.getEstado() != null) {
+            TransicionEstados.validar(res.getEstado(), datos.getEstado());
+            res.setEstado(datos.getEstado());
+        }
         if (datos.getTotalPago() != null) res.setTotalPago(datos.getTotalPago());
         if (datos.getNotasAdicionales() != null) res.setNotasAdicionales(datos.getNotasAdicionales());
 
@@ -106,9 +109,16 @@ public class ReservaService {
     public Reserva cambiarEstado(Long id, EstadoReserva nuevoEstado) {
         Reserva res = reservaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Reserva no encontrada con ID: " + id));
+        TransicionEstados.validar(res.getEstado(), nuevoEstado);
+        boolean cambio = res.getEstado() != nuevoEstado;
+        if (cambio) {
+            validarHabitacion(res, nuevoEstado); // si la habitación no admite el cambio, no se toca nada
+        }
         res.setEstado(nuevoEstado);
         Reserva guardada = reservaRepository.save(res);
-        sincronizarHabitacion(guardada);
+        if (cambio) {
+            sincronizarHabitacion(guardada);
+        }
         return guardada;
     }
 
@@ -173,6 +183,17 @@ public class ReservaService {
             }
         }
         habitacionRepository.save(hab);
+    }
+
+    /** Check-in ocupa la habitación y finalizar la deja en limpieza: se valida antes de guardar la reserva. */
+    private void validarHabitacion(Reserva res, EstadoReserva nuevoEstado) {
+        Habitacion hab = res.getHabitacion();
+        if (hab == null) return;
+        if (nuevoEstado == EstadoReserva.CHECKIN) {
+            TransicionEstados.validar(hab.getEstado(), EstadoHabitacion.OCUPADA);
+        } else if (nuevoEstado == EstadoReserva.FINALIZADA) {
+            TransicionEstados.validar(hab.getEstado(), EstadoHabitacion.LIMPIEZA_PENDIENTE);
+        }
     }
 
     @Transactional

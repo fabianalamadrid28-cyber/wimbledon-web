@@ -5,7 +5,7 @@ import AdminDashboard from './admin/AdminDashboard';
 import ReceptionDashboard from './reception/ReceptionDashboard';
 import HousekeepingDashboard from './housekeeping/HousekeepingDashboard';
 import { INITIAL_ROOMS, INITIAL_RESERVATIONS } from '../services/api';
-import useLiveSync from '../services/useLiveSync';
+import { useEstadosEnVivo } from '../hooks/useEstadosEnVivo';
 
 export default function DashboardContainer({ 
   initialRole = 'ADMIN', 
@@ -54,8 +54,10 @@ export default function DashboardContainer({
   const reservations = propReservations || internalReservations;
   const setReservations = propSetReservations || setInternalReservations;
 
-  // Datos en vivo del backend si el padre no los provee
-  useLiveSync(setRooms, setReservations, { enabled: !(propRooms && propReservations) });
+  // Los paneles muestran siempre lo que dice el servidor y se actualizan solos cada 5 s
+  const { error: errorSync, ultimaSync, acciones } = useEstadosEnVivo({
+    onDatos: (hab, res) => { setRooms(hab); setReservations(res); }
+  });
 
   // User meta by role
   const getUserProfile = () => {
@@ -105,6 +107,11 @@ export default function DashboardContainer({
         />
 
         {/* Dashboard Views */}
+        <div role="status" style={{ padding: '4px 16px', fontSize: '12px', color: errorSync ? '#b91c1c' : '#64748b' }}>
+          {errorSync
+            ? `Sin conexión con el servidor: ${errorSync}. Mostrando el último dato recibido.`
+            : (ultimaSync ? `En vivo · actualizado ${ultimaSync.toLocaleTimeString('es-PE')}` : 'Conectando…')}
+        </div>
         <main className="dash-content">
           {currentRole === 'ADMIN' && (
             <AdminDashboard
@@ -120,6 +127,7 @@ export default function DashboardContainer({
 
           {currentRole === 'RECEPCION' && (
             <ReceptionDashboard
+              acciones={acciones}
               currentTab={currentTab}
               setCurrentTab={setCurrentTab}
               reservations={reservations}
@@ -132,6 +140,7 @@ export default function DashboardContainer({
 
           {currentRole === 'LIMPIEZA' && (
             <HousekeepingDashboard
+              acciones={acciones}
               rooms={rooms}
               setRooms={setRooms}
               searchTerm={searchTerm}

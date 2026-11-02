@@ -18,7 +18,7 @@ import MaintenanceReportModal from '../../components/modals/MaintenanceReportMod
 
 export default function HousekeepingDashboard({
   rooms,
-  setRooms,
+  acciones,
   searchTerm
 }) {
   const [floorFilter, setFloorFilter] = useState('ALL');
@@ -27,17 +27,8 @@ export default function HousekeepingDashboard({
   const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false);
   const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
 
-  // Cambia el estado en pantalla, lo guarda en el backend y re-sincroniza
-  const cambiarEstadoHabitacion = async (roomId, nuevoEstado) => {
-    setRooms(prev => prev.map(r => r.id === roomId ? { ...r, estado: nuevoEstado } : r));
-    await api.updateEstadoHabitacion(roomId, nuevoEstado);
-    api.syncAll(setRooms, () => {});
-  };
-
   // Transition: Iniciar Limpieza (moves to EN_PROCESO)
-  const handleStartCleaning = (roomId) => {
-    cambiarEstadoHabitacion(roomId, 'EN_PROCESO');
-  };
+  const handleStartCleaning = (roomId) => acciones.cambiarEstadoHabitacion(roomId, 'EN_PROCESO');
 
   // Open checklist to finalize
   const handleOpenChecklist = (room) => {
@@ -46,9 +37,8 @@ export default function HousekeepingDashboard({
   };
 
   // Complete cleaning from checklist
-  const handleFinishCleaning = (roomId, notes) => {
-    cambiarEstadoHabitacion(roomId, 'DISPONIBLE');
-    alert(`¡Habitación lista e inspeccionada! Ahora figura como Disponible en Recepción.`);
+  const handleFinishCleaning = async (roomId, notes) => {
+    await acciones.cambiarEstadoHabitacion(roomId, 'LISTA');
   };
 
   // Open maintenance report
@@ -58,15 +48,12 @@ export default function HousekeepingDashboard({
   };
 
   // Submit maintenance
-  const handleSubmitMaintenance = (roomId, reportData) => {
-    cambiarEstadoHabitacion(roomId, 'MANTENIMIENTO');
-    alert(`Habitación puesta en mantenimiento por: ${reportData.motivo}`);
+  const handleSubmitMaintenance = async (roomId, reportData) => {
+    await acciones.cambiarEstadoHabitacion(roomId, 'MANTENIMIENTO');
   };
 
   // Reset to pending cleaning
-  const handleMarkAsDirty = (roomId) => {
-    cambiarEstadoHabitacion(roomId, 'LIMPIEZA_PENDIENTE');
-  };
+  const handleMarkAsDirty = (roomId) => acciones.cambiarEstadoHabitacion(roomId, 'LIMPIEZA_PENDIENTE');
 
   // Filters
   const filteredRooms = rooms.filter(room => {

@@ -47,7 +47,10 @@ public class HabitacionService {
         if (datosActualizados.getPrecioBloque() != null) hab.setPrecioBloque(datosActualizados.getPrecioBloque());
         if (datosActualizados.getCapacidad() != null) hab.setCapacidad(datosActualizados.getCapacidad());
         if (datosActualizados.getPiso() != null) hab.setPiso(datosActualizados.getPiso());
-        if (datosActualizados.getEstado() != null) hab.setEstado(datosActualizados.getEstado());
+        if (datosActualizados.getEstado() != null) {
+            TransicionEstados.validar(hab.getEstado(), datosActualizados.getEstado());
+            hab.setEstado(datosActualizados.getEstado());
+        }
         if (datosActualizados.getUrlImagen() != null) hab.setUrlImagen(datosActualizados.getUrlImagen());
 
         hab.setTieneJacuzzi(datosActualizados.isTieneJacuzzi());
@@ -63,6 +66,7 @@ public class HabitacionService {
     public Habitacion cambiarEstado(Long id, EstadoHabitacion nuevoEstado) {
         Habitacion hab = habitacionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Habitación no encontrada con ID: " + id));
+        TransicionEstados.validar(hab.getEstado(), nuevoEstado);
         hab.setEstado(nuevoEstado);
         return habitacionRepository.save(hab);
     }

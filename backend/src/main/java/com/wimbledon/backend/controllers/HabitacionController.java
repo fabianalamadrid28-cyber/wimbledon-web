@@ -1,5 +1,6 @@
 package com.wimbledon.backend.controllers;
 
+import com.wimbledon.backend.services.TransicionInvalidaException;
 import com.wimbledon.backend.entities.Habitacion;
 import com.wimbledon.backend.enums.EstadoHabitacion;
 import com.wimbledon.backend.services.HabitacionService;
@@ -51,6 +52,8 @@ public class HabitacionController {
         try {
             Habitacion actualizada = habitacionService.actualizar(id, datos);
             return ResponseEntity.ok(actualizada);
+        } catch (TransicionInvalidaException e) {
+            return ResponseEntity.status(409).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

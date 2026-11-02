@@ -28,6 +28,7 @@ export default function ReceptionDashboard({
   setCurrentTab,
   reservations = [],
   setReservations,
+  acciones,
   rooms = [],
   setRooms,
   searchTerm = ''
@@ -37,21 +38,19 @@ export default function ReceptionDashboard({
   const [selectedGuestReservation, setSelectedGuestReservation] = useState(safeReservations[0] || null);
   const [isGuestDetailOpen, setIsGuestDetailOpen] = useState(false);
 
-  // Cambia el estado de la reserva (y de su habitación) en pantalla, lo guarda en el backend y re-sincroniza
-  const cambiarEstadoReserva = async (resId, nuevoEstado) => {
-    const reserva = safeReservations.find(r => r.id === resId);
-    if (!reserva) return;
-    aplicarEstadoReservaLocal(setReservations, setRooms, reserva, nuevoEstado);
-    await api.updateEstadoReserva(resId, nuevoEstado);
-    api.syncAll(setRooms, setReservations);
-  };
+  // Handle Check-in action
+  const handlePerformCheckin = (resId) => acciones.cambiarEstadoReserva(resId, 'CHECKIN');
 
-  const handlePerformCheckin = (resId) => cambiarEstadoReserva(resId, 'Check-in');
-  const handleConfirmReservation = (resId) => cambiarEstadoReserva(resId, 'Confirmada');
-  const handleFinalizeReservation = (resId) => cambiarEstadoReserva(resId, 'Finalizada');
+  // Handle Confirm action
+  const handleConfirmReservation = (resId) => acciones.cambiarEstadoReserva(resId, 'CONFIRMADA');
+
+  // Handle Check-out action (la habitación pasa sola a limpieza pendiente en el servidor)
+  const handlePerformCheckout = (resId) => acciones.cambiarEstadoReserva(resId, 'FINALIZADA');
+
+  // Cancelar (solo PENDIENTE o CONFIRMADA; el servidor valida la transición)
   const handleCancelReservation = (resId) => {
     if (window.confirm("¿Cancelar esta reserva? La habitación quedará libre.")) {
-      cambiarEstadoReserva(resId, 'Cancelada');
+      acciones.cambiarEstadoReserva(resId, 'CANCELADA');
     }
   };
 
@@ -240,11 +239,13 @@ export default function ReceptionDashboard({
                           <button 
                             className="btn-checkin-action" 
                             style={{ backgroundColor: '#10b981' }}
-                            onClick={(e) => { e.stopPropagation(); handleFinalizeReservation(res.id); }}
+                            onClick={(e) => { e.stopPropagation(); handlePerformCheckout(res.id); }}
                           >
-                            Finalizar (check-out)
+                            Check-out &gt;
                           </button>
-                        ) : null}
+                        ) : (
+                          <span style={{ fontSize: '12px', color: '#64748b' }}>{res.estado}</span>
+                        )}
                         {['pendiente', 'confirmada'].includes(String(res.estado || '').toLowerCase()) && (
                           <button 
                             className="btn-action-icon"
