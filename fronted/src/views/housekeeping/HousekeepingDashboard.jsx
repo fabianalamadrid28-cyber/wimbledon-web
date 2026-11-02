@@ -190,7 +190,10 @@ export default function HousekeepingDashboard({
               <option value="ALL">Todos los estados</option>
               <option value="LIMPIEZA_PENDIENTE">Limpieza Pendiente</option>
               <option value="EN_PROCESO">En Proceso</option>
-              <option value="DISPONIBLE">Disponibles / Listas</option>
+              <option value="DISPONIBLE">Disponibles</option>
+              <option value="LISTA">Listas</option>
+              <option value="RESERVADA">Reservadas</option>
+              <option value="OCUPADA">Ocupadas</option>
               <option value="MANTENIMIENTO">En Mantenimiento</option>
             </select>
           </div>
@@ -232,7 +235,7 @@ export default function HousekeepingDashboard({
                 <span className={`badge-status ${room.estado.toLowerCase()}`}>
                   {isPending && '⚠️ Pendiente'}
                   {isInProgress && '⏳ En proceso'}
-                  {isReady && '✅ Lista'}
+                  {isReady && (room.estado === 'LISTA' ? '✅ Lista' : '🟢 Disponible')}
                   {isMaintenance && '🔧 Mantenimiento'}
                   {room.estado === 'OCUPADA' && '🔵 Ocupada'}
                   {room.estado === 'RESERVADA' && '📌 Reservada'}

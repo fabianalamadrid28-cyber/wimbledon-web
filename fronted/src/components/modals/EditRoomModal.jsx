@@ -123,6 +123,8 @@ export default function EditRoomModal({ isOpen, onClose, room, onSave }) {
                     <option value="OCUPADA">Ocupada</option>
                     <option value="MANTENIMIENTO">Mantenimiento</option>
                     <option value="LIMPIEZA_PENDIENTE">Limpieza Pendiente</option>
+                    <option value="EN_PROCESO">En Proceso (limpieza)</option>
+                    <option value="LISTA">Lista</option>
                   </select>
                 </div>
               </div>

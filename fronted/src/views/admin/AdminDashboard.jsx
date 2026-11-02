@@ -279,6 +279,8 @@ export default function AdminDashboard({
                   <option value="Confirmada">Confirmadas</option>
                   <option value="Pendiente">Pendientes</option>
                   <option value="Check-in">Check-in</option>
+                  <option value="Finalizada">Finalizadas</option>
+                  <option value="Cancelada">Canceladas</option>
                 </select>
               </div>
 
