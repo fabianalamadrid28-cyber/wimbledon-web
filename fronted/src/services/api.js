@@ -34,6 +34,29 @@ export const UPCOMING_CHECKINS = [
   { hora: '17:00', huesped: 'Alejandro Rojas', habitacion: '102', tipo: 'Simple' }
 ];
 
+// Datos que el formulario de edición necesita y las reglas de tiempo que calcula el servidor (hora de Lima)
+function camposEdicion(item) {
+  const hhmm = (t) => (t ? String(t).slice(0, 5) : '');
+  return {
+    habitacionId: typeof item.habitacion === 'object' && item.habitacion ? item.habitacion.id : null,
+    documento: item.documentoHuesped || item.documento || '',
+    // Valores reales (sin relleno inventado): el formulario de edición no debe grabar un correo/teléfono falso
+    emailReal: item.emailHuesped || '',
+    telefonoReal: item.telefonoWhatsApp || '',
+    fechaCheckInISO: item.fechaCheckIn || '',
+    fechaCheckOutISO: item.fechaCheckOut || '',
+    horaEntrada: hhmm(item.horaEntradaProgramada),
+    horaSalida: hhmm(item.horaSalidaProgramada),
+    bloque: item.bloqueSeleccionado || '',
+    notas: item.notasAdicionales || '',
+    puedeEditar: item.puedeEditar === true,
+    motivoNoEditable: item.motivoNoEditable || null,
+    puedeCancelar: item.puedeCancelar === true,
+    motivoNoCancelable: item.motivoNoCancelable || null,
+    excedida: item.excedida === true
+  };
+}
+
 // Normalizer to safely transform backend DB models into UI models
 export function normalizeReservation(item, index) {
   if (!item) return null;
@@ -56,6 +79,7 @@ export function normalizeReservation(item, index) {
   return {
     id: item.id || index + 1,
     codigo: item.codigo || `#R-${1025 + index}`,
+    ...camposEdicion(item),
     idDisplay: item.idDisplay || `#00${index + 1}`,
     huesped: item.nombreHuesped || item.huesped || 'Huésped',
     habitacion: habitacionNum,
@@ -210,6 +234,28 @@ export const api = {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ estado: ESTADO_RESERVA_API[nuevoEstado] || String(nuevoEstado).toUpperCase() })
+    }).catch(() => { throw new Error('Sin conexión con el servidor'); });
+    if (!res.ok) throw new Error((await res.text()) || `Error ${res.status}`);
+    return normalizeReservation(await res.json(), 0);
+  },
+
+  // Editar datos de una reserva (el servidor valida: solo PENDIENTE/CONFIRMADA y antes de la hora de entrada)
+  async editarReserva(id, datos) {
+    const res = await fetch(`${API_BASE_URL}/reservas/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos)
+    }).catch(() => { throw new Error('Sin conexión con el servidor'); });
+    if (!res.ok) throw new Error((await res.text()) || `Error ${res.status}`);
+    return normalizeReservation(await res.json(), 0);
+  },
+
+  // Extender una reserva con el huésped dentro (CHECKIN): suma horas y cobro
+  async extenderReserva(id, horas, monto) {
+    const res = await fetch(`${API_BASE_URL}/reservas/${id}/extender`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ horas, monto: monto === '' || monto == null ? null : monto })
     }).catch(() => { throw new Error('Sin conexión con el servidor'); });
     if (!res.ok) throw new Error((await res.text()) || `Error ${res.status}`);
     return normalizeReservation(await res.json(), 0);

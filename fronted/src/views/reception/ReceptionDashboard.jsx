@@ -22,6 +22,8 @@ import {
 import { DonutChartSvg } from '../../components/common/Charts';
 import { api, aplicarEstadoReservaLocal } from '../../services/api';
 import GuestDetailModal from '../../components/modals/GuestDetailModal';
+import EditReservationModal from '../../components/modals/EditReservationModal';
+import ExtendReservationModal from '../../components/modals/ExtendReservationModal';
 
 export default function ReceptionDashboard({
   currentTab = 'inicio',
@@ -37,6 +39,8 @@ export default function ReceptionDashboard({
   const safeReservations = Array.isArray(reservations) ? reservations : [];
   const [selectedGuestReservation, setSelectedGuestReservation] = useState(safeReservations[0] || null);
   const [isGuestDetailOpen, setIsGuestDetailOpen] = useState(false);
+  const [reservaEnEdicion, setReservaEnEdicion] = useState(null);
+  const [reservaAExtender, setReservaAExtender] = useState(null);
 
   // Handle Check-in action
   const handlePerformCheckin = (resId) => acciones.cambiarEstadoReserva(resId, 'CHECKIN');
@@ -236,21 +240,37 @@ export default function ReceptionDashboard({
                             Confirmar
                           </button>
                         ) : String(res.estado || '').toLowerCase() === 'check-in' ? (
-                          <button 
-                            className="btn-checkin-action" 
-                            style={{ backgroundColor: '#10b981' }}
-                            onClick={(e) => { e.stopPropagation(); handlePerformCheckout(res.id); }}
-                          >
-                            Check-out &gt;
-                          </button>
+                          <>
+                            <button 
+                              className="btn-checkin-action" 
+                              style={{ backgroundColor: '#10b981' }}
+                              onClick={(e) => { e.stopPropagation(); handlePerformCheckout(res.id); }}
+                            >
+                              Check-out &gt;
+                            </button>
+                            {res.excedida && (
+                              <span title="Pasó la hora de salida; se cerrará sola a los 30 min" style={{ fontSize: '11px', fontWeight: 700, color: '#b45309', background: '#fef3c7', borderRadius: '6px', padding: '2px 6px' }}>
+                                Excedida
+                              </span>
+                            )}
+                            <button
+                              className="btn-action-icon"
+                              title="Extender tiempo"
+                              onClick={(e) => { e.stopPropagation(); setReservaAExtender(res); }}
+                            >
+                              +⏱
+                            </button>
+                          </>
                         ) : (
                           <span style={{ fontSize: '12px', color: '#64748b' }}>{res.estado}</span>
                         )}
                         {['pendiente', 'confirmada'].includes(String(res.estado || '').toLowerCase()) && (
                           <button 
                             className="btn-action-icon"
-                            title="Cancelar reserva"
-                            onClick={(e) => { e.stopPropagation(); handleCancelReservation(res.id); }}
+                            title={res.puedeCancelar ? 'Cancelar reserva' : (res.motivoNoCancelable || 'No se puede cancelar')}
+                            disabled={!res.puedeCancelar}
+                            style={res.puedeCancelar ? undefined : { opacity: 0.35, cursor: 'not-allowed' }}
+                            onClick={(e) => { e.stopPropagation(); if (res.puedeCancelar) handleCancelReservation(res.id); }}
                           >
                             ✕
                           </button>
@@ -465,7 +485,10 @@ export default function ReceptionDashboard({
                 </button>
                 <button 
                   className="btn-guest-action green"
-                  onClick={() => alert(`Editando datos de reserva para ${selectedGuestReservation.huesped}`)}
+                  disabled={!selectedGuestReservation.puedeEditar}
+                  title={selectedGuestReservation.puedeEditar ? 'Editar reserva' : (selectedGuestReservation.motivoNoEditable || 'No se puede editar')}
+                  style={selectedGuestReservation.puedeEditar ? undefined : { opacity: 0.45, cursor: 'not-allowed' }}
+                  onClick={() => setReservaEnEdicion(selectedGuestReservation)}
                 >
                   <FileEdit size={15} /> Editar reserva
                 </button>
@@ -490,6 +513,22 @@ export default function ReceptionDashboard({
         isOpen={isGuestDetailOpen}
         onClose={() => setIsGuestDetailOpen(false)}
         reservation={selectedGuestReservation}
+      />
+
+      <EditReservationModal
+        isOpen={!!reservaEnEdicion}
+        onClose={() => setReservaEnEdicion(null)}
+        reservation={reservaEnEdicion}
+        rooms={rooms}
+        onSave={acciones.editarReserva}
+      />
+
+      <ExtendReservationModal
+        isOpen={!!reservaAExtender}
+        onClose={() => setReservaAExtender(null)}
+        reservation={reservaAExtender}
+        room={reservaAExtender ? rooms.find(r => String(r.numero) === String(reservaAExtender.habitacion)) : null}
+        onExtend={acciones.extenderReserva}
       />
     </div>
   );

@@ -115,6 +115,7 @@ export default function DashboardContainer({
         <main className="dash-content">
           {currentRole === 'ADMIN' && (
             <AdminDashboard
+              acciones={acciones}
               currentTab={currentTab}
               setCurrentTab={setCurrentTab}
               rooms={rooms}

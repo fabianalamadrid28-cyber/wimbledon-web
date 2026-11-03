@@ -50,7 +50,21 @@ export function useEstadosEnVivo({ onDatos, activo = true }) {
     }
   }, [refrescar]);
 
+  // Edición/extensión: el modal muestra el error del servidor, así que aquí no se usa alert
+  const conResultado = useCallback(async (llamada) => {
+    try {
+      await llamada();
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e.message };
+    } finally {
+      await refrescar();
+    }
+  }, [refrescar]);
+
   const acciones = {
+    editarReserva: (id, datos) => conResultado(() => api.editarReserva(id, datos)),
+    extenderReserva: (id, horas, monto) => conResultado(() => api.extenderReserva(id, horas, monto)),
     cambiarEstadoHabitacion: (id, estado) => ejecutar(() => api.updateEstadoHabitacion(id, estado)),
     cambiarEstadoReserva: (id, estado) => ejecutar(() => api.updateEstadoReserva(id, estado)),
   };
