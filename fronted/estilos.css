@@ -509,36 +509,59 @@ section[id] {
   }
 }
 
-.month-box h4 {
-  font-family: var(--font-serif);
-  color: var(--gold-primary);
-  font-size: 1rem;
-  margin-bottom: 0.75rem;
-  text-align: center;
-  letter-spacing: 0.05em;
+.room-card .calendars-flex-container {
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.month-box {
+  min-width: 0;
+}
+
+.room-card .calendar-dropdown-box {
+  padding: 1rem 0.85rem;
 }
 
 .calendar-grid-header {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
   text-align: center;
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   color: var(--text-muted);
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+  font-weight: 700;
+  margin-bottom: 0.6rem;
+}
+
+.calendar-grid-header span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--border-color);
+  min-width: 0;
 }
 
 .calendar-days-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   text-align: center;
-  gap: 4px;
+  gap: 8px;
   font-size: 0.8rem;
 }
 
 .calendar-days-grid span {
-  padding: 6px 0;
+  min-width: 0;
+  padding: 8px 0;
   color: var(--text-light);
+}
+.month-box h4 {
+  font-family: var(--font-serif);
+  color: var(--gold-primary);
+  font-size: 1.05rem;
+  margin-bottom: 0.75rem;
+  text-align: center;
+  letter-spacing: 0.05em;
 }
 
 .calendar-days-grid .day {
