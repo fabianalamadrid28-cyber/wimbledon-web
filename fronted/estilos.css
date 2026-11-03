@@ -1277,6 +1277,22 @@ section[id] {
   padding-bottom: 3rem;
   animation: fadeIn 0.4s ease;
 }
+.room-action-row {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+.room-action-row button {
+  flex: 1;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+.room-action-row .btn-view-rates-compact,
+.room-action-row .btn-solid-gold {
+  padding: 0.5rem 0.35rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+}
 .room-card .media { aspect-ratio: 4 / 3; }
 .room-card .card-desc {
   min-height: 3.2em;
@@ -1350,4 +1366,6 @@ section[id] {
   .room-card .card-desc { min-height: auto; }
   .room-preview { margin-top: 0.5rem; }
   .room-content-meta { flex-direction: column; gap: 0.25rem; }
+  .room-action-row { flex-direction: column; }
+  .room-action-row button { width: 100%; }
 }
