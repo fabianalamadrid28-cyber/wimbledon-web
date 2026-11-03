@@ -2,7 +2,7 @@
  {
   "id": 14,
   "nombre": "Pacific Dreams Presidencial",
-  "precio_exacto": "S/ 177.20",
+  "precio_exacto": "S/ 177.00",
   "intro": "¡Una elegancia que somete! Habitación de lujo diseñada para clientes exclusivos que desean vivir del máximo placer.",
   "equipamiento": [
    "Vista al mar (de acuerdo a disponibilidad)",
@@ -30,7 +30,7 @@
  {
   "id": 16,
   "nombre": "Pacific Dreams",
-  "precio_exacto": "S/ 125.08",
+  "precio_exacto": "S/ 125.00",
   "intro": "¡Una elegancia que somete! Habitación de lujo diseñada para clientes exclusivos que desean vivir del máximo placer.",
   "equipamiento": [
    "Vista al mar (de acuerdo a disponibilidad)",
@@ -80,7 +80,7 @@
  {
   "id": 22,
   "nombre": "Riverside Dreams",
-  "precio_exacto": "S/ 125.08",
+  "precio_exacto": "S/ 125.00",
   "intro": "¡Dónde fluye la pasión! Nuestra habitación de lujo está diseñada de manera que nuestros clientes vivan momentos inolvidables que les permitan fluir en sintonía con el amor.",
   "equipamiento": [
    "Cama (Queen size)",
@@ -131,7 +131,7 @@
  {
   "id": 27,
   "nombre": "Jacuzzi Deluxe",
-  "precio_exacto": "S/ 104.24",
+  "precio_exacto": "S/ 104.00",
   "intro": "¡Velada en el Jacuzzi! Nuestra habitación ejecutiva cuenta con todas las comodidades para que nuestros clientes hagan a un lado la rutina y vivan momentos de satisfacción en nuestro relajante Jacuzzi.",
   "equipamiento": [
    "Cama (Queen size)",
@@ -154,7 +154,7 @@
  {
   "id": 29,
   "nombre": "Simple Vista al Mar",
-  "precio_exacto": "S/ 72.97",
+  "precio_exacto": "S/ 73.00",
   "intro": "¡Veamos juntos el mar! Habitación confortable para que nuestros clientes tengan un momento de pasión con el mar como único testigo.",
   "equipamiento": [
    "Vista al mar (de acuerdo a disponibilidad)",
@@ -177,7 +177,7 @@
  {
   "id": 31,
   "nombre": "Simple con Jacuzzi",
-  "precio_exacto": "S/ 88.60",
+  "precio_exacto": "S/ 89.00",
   "intro": "¡Te veo en el Jacuzzi! Habitación confortable para que nuestros clientes pasen momentos pasionales en el Jacuzzi.",
   "equipamiento": [
    "Parking directo a la habitación",
@@ -201,7 +201,7 @@
  {
   "id": 33,
   "nombre": "Hawaian Dreams",
-  "precio_exacto": "S/ 72.97",
+  "precio_exacto": "S/ 73.00",
   "intro": "¡Aloha! Habitación diseñada con detalles tropicales que recrearán un ambiente como en el mismo Hawai.",
   "equipamiento": [
    "Cama 2 plazas confort 100%",
@@ -270,7 +270,7 @@
  {
   "id": 227,
   "nombre": "Dark Fantasies",
-  "precio_exacto": "S/ 208.47",
+  "precio_exacto": "S/ 208.00",
   "intro": "¡El límite lo pones tú! Una habitación que cumple fantasías; exclusiva para nuestros clientes más exigentes, equipadas con todas las comodidades para que las parejas jueguen con su imaginación y se desviven en pasión.",
   "equipamiento": [
    "Cama (King size)",
@@ -320,7 +320,7 @@
  {
   "id": 526,
   "nombre": "Riverside Dreams Presidencial",
-  "precio_exacto": "S/ 156.36",
+  "precio_exacto": "S/ 156.00",
   "intro": "¡Dónde fluye la pasión! Nuestra habitación de lujo está diseñada de manera que nuestros clientes vivan momentos inolvidables que les permitan fluir en sintonía con el amor.",
   "equipamiento": [
    "Vista a un río artificial",
@@ -344,7 +344,7 @@
  {
   "id": 528,
   "nombre": "Tropical Dreams",
-  "precio_exacto": "S/ 125.08",
+  "precio_exacto": "S/ 125.00",
   "intro": "Habitación de lujo diseñada para los clientes exclusivos que desean vivir un momento inolvidable.",
   "equipamiento": [
    "Cama Queen Confort 100%",
@@ -367,7 +367,7 @@
  {
   "id": 860,
   "nombre": "Suite Presidencial",
-  "precio_exacto": "S/ 156.36",
+  "precio_exacto": "S/ 156.00",
   "intro": "¡Ten los sueños más placenteros! Nuestra habitación de lujo está equipada con todos los detalles que permitan a nuestros clientes tener descanso propio de una realeza.",
   "equipamiento": [
    "Cama redonda",

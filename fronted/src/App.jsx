@@ -600,7 +600,7 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
                     <div className="rate-option-card">
                       <div className="rate-option-header">
                         <span className="rate-option-name">Bloque 12 Horas</span>
-                        <span className="rate-option-price">S/ {parseInt(room.desde.replace('S/ ', '')) + 50}</span>
+                        <span className="rate-option-price">S/ {(Number(room.desde.replace('S/ ', '')) + 50).toFixed(2)}</span>
                       </div>
                       <p className="rate-option-desc">Mediodía de descanso pleno con room service y late check-out disponible.</p>
                       <button 
@@ -614,7 +614,7 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
                     <div className="rate-option-card">
                       <div className="rate-option-header">
                         <span className="rate-option-name">Pernocte Completo</span>
-                        <span className="rate-option-price">S/ {parseInt(room.desde.replace('S/ ', '')) + 90}</span>
+                        <span className="rate-option-price">S/ {(Number(room.desde.replace('S/ ', '')) + 90).toFixed(2)}</span>
                       </div>
                       <p className="rate-option-desc">Noche completa de descanso ininterrumpido hasta el mediodía siguiente.</p>
                       <button 
