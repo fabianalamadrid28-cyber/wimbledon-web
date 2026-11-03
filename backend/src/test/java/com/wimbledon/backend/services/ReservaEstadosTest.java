@@ -6,6 +6,7 @@ import com.wimbledon.backend.enums.EstadoHabitacion;
 import com.wimbledon.backend.enums.EstadoReserva;
 import com.wimbledon.backend.repositories.HabitacionRepository;
 import com.wimbledon.backend.repositories.ReservaRepository;
+import com.wimbledon.backend.services.ClienteService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -19,6 +20,7 @@ class ReservaEstadosTest {
 
     private ReservaRepository reservas;
     private HabitacionRepository habitaciones;
+    private ClienteService clienteService;
     private ReservaService servicio;
     private Habitacion hab;
     private Reserva res;
@@ -27,7 +29,8 @@ class ReservaEstadosTest {
     void preparar() {
         reservas = mock(ReservaRepository.class);
         habitaciones = mock(HabitacionRepository.class);
-        servicio = new ReservaService(reservas, habitaciones);
+        clienteService = mock(ClienteService.class);
+        servicio = new ReservaService(reservas, habitaciones, clienteService);
         hab = new Habitacion();
         hab.setEstado(EstadoHabitacion.LISTA);
         res = new Reserva();

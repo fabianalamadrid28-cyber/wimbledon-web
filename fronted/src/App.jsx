@@ -151,7 +151,11 @@ const tiposHabitaciones = HABITACIONES_REALES.map((h) => ({
   tipo: tipoDe(h.nombre),
   nombre: h.nombre,
   desc: `Incluye: ${h.equipamiento.join(', ')}.`,
+  intro: h.intro,
+  equipamiento: h.equipamiento,
+  duracion: h.duracion,
   desde: `S/ ${Number(h.precio_exacto.replace(/[^\d.]/g, '')).toFixed(2)}`,
+  precioExacto: h.precio_exacto,
   img: h.imagen_url,
 }));
 
@@ -634,17 +638,36 @@ function App() {
         </button>
 
         {verTodasHab && (
-          <div className="all-rooms-grid max-container" style={{ marginTop: '2rem' }}>
+          <div className="content-cards-grid max-container">
             {tiposHabitaciones.map((t) => (
-              <article key={t.id} className="type-card">
-                <div className="media"><Img src={t.img} alt={t.nombre} /></div>
-                <div className="type-body">
-                  <h3>{t.nombre}</h3>
-                  <p>{t.desc}</p>
-                  <div className="type-foot">
-                    <span className="price-tag">Desde {t.desde}</span>
-                    <button 
-                      className="btn-link-gold" 
+              <article key={t.id} className="content-card">
+                <div className="content-card-media">
+                  <Img src={t.img} alt={t.nombre} />
+                  <span className="content-card-tag">{t.duracion.replace(/[()]/g, '')}</span>
+                </div>
+                <div className="content-card-body">
+                  <header className="content-card-header">
+                    <span className="content-card-kind">{t.tipo}</span>
+                    <h3>{t.nombre}</h3>
+                  </header>
+                  <p className="content-card-intro">{t.intro}</p>
+
+                  <div className="content-equipment">
+                    <h4>Qué contiene</h4>
+                    <ul className="content-equipment-list">
+                      {t.equipamiento.map((item, index) => (
+                        <li key={`${t.id}-${index}`}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="content-card-foot">
+                    <div className="content-price">
+                      <span className="content-price-label">Precio</span>
+                      <span className="content-price-value">{t.precioExacto}</span>
+                    </div>
+                    <button
+                      className="btn-link-gold"
                       onClick={() => handleOpenBooking({ room: t })}
                     >
                       Reservar esta Suite
