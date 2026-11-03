@@ -40,7 +40,7 @@ public class ReservaService {
         String documento = reserva.getDocumentoHuesped();
         String nombre = reserva.getNombreHuesped();
         if (documento == null || documento.isBlank() || nombre == null || nombre.isBlank()) return;
-        clienteService.registrarOActualizar(documento, nombre, reserva.getTelefonoWhatsApp(), reserva.getEmailHuesped());
+        clienteService.registrarOActualizar(documento, nombre, reserva.getTelefonoWhatsApp());
     }
 
     public List<Reserva> listarTodas() {
@@ -85,7 +85,7 @@ public class ReservaService {
         Reserva guardada = reservaRepository.save(reserva);
         sincronizarHabitacion(guardada);
         return guardada;
-    
+    }
 
     @Transactional
     public Reserva actualizarReserva(Long id, Reserva datos) {
