@@ -12,6 +12,7 @@ import com.wimbledon.backend.repositories.UsuarioRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -25,13 +26,14 @@ public class DataInitializer {
     public CommandLineRunner initData(
             HabitacionRepository habitacionRepository,
             ReservaRepository reservaRepository,
-            UsuarioRepository usuarioRepository) {
+            UsuarioRepository usuarioRepository,
+            PasswordEncoder passwordEncoder) {
         return args -> {
             // Inicializar usuarios base
             if (usuarioRepository.count() == 0) {
                 usuarioRepository.save(Usuario.builder()
                         .username("admin@hotel.com")
-                        .password("admin123")
+                        .password(passwordEncoder.encode("admin123"))
                         .nombreCompleto("Administrador Principal")
                         .telefono("+51 999 888 777")
                         .rol(Rol.ADMINISTRADOR)
@@ -40,7 +42,7 @@ public class DataInitializer {
 
                 usuarioRepository.save(Usuario.builder()
                         .username("ana.torres@hotel.com")
-                        .password("recepcion123")
+                        .password(passwordEncoder.encode("recepcion123"))
                         .nombreCompleto("Ana Torres")
                         .telefono("+51 987 654 321")
                         .rol(Rol.RECEPCIONISTA)
@@ -49,13 +51,21 @@ public class DataInitializer {
 
                 usuarioRepository.save(Usuario.builder()
                         .username("rosa.limpieza@hotel.com")
-                        .password("limpieza123")
+                        .password(passwordEncoder.encode("limpieza123"))
                         .nombreCompleto("Rosa Flores")
                         .telefono("+51 977 112 334")
                         .rol(Rol.LIMPIEZA)
                         .activo(true)
                         .build());
             }
+
+            // Migración: cifra con BCrypt cualquier contraseña que aún esté en texto plano
+            usuarioRepository.findAll().forEach(u -> {
+                if (u.getPassword() != null && !u.getPassword().startsWith("$2")) {
+                    u.setPassword(passwordEncoder.encode(u.getPassword()));
+                    usuarioRepository.save(u);
+                }
+            });
 
             // Inicializar habitaciones si no existen
             if (habitacionRepository.count() == 0) {

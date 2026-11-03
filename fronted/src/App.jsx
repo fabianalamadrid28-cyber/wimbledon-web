@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import DashboardContainer from './views/DashboardContainer';
 import { 
   Shield, 
@@ -14,7 +14,7 @@ import {
   Check, 
   CheckCircle2 
 } from 'lucide-react';
-import { INITIAL_ROOMS, INITIAL_RESERVATIONS, api } from './services/api';
+import { INITIAL_ROOMS, INITIAL_RESERVATIONS, api, setPermisoReservas } from './services/api';
 import useLiveSync from './services/useLiveSync';
 import BookingModal from './components/modals/BookingModal';
 import ReceiptModal from './components/modals/ReceiptModal';
@@ -198,9 +198,23 @@ function Img({ src, alt }) {
   );
 }
 
+const PANEL_BY_ROL = { ADMINISTRADOR: 'ADMIN', SUPER_ADMIN: 'ADMIN', RECEPCIONISTA: 'RECEPCION', LIMPIEZA: 'LIMPIEZA' };
+const HASH_BY_PANEL = { ADMIN: '#admin', RECEPCION: '#recepcion', LIMPIEZA: '#limpieza' };
+const PANEL_BY_HASH = { admin: 'ADMIN', recepcion: 'RECEPCION', reception: 'RECEPCION', limpieza: 'LIMPIEZA', housekeeping: 'LIMPIEZA' };
+
 function App() {
   const [currentView, setCurrentView] = useState('landing'); // 'landing' | 'dashboard'
-  const [activeRole, setActiveRole] = useState('ADMIN'); // 'ADMIN' | 'RECEPCION' | 'LIMPIEZA'
+  // Sesión: el usuario y su rol vienen del backend (nunca se eligen en la interfaz)
+  const [authUser, setAuthUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const authUserRef = useRef(null);
+  authUserRef.current = authUser;
+  const panel = authUser ? PANEL_BY_ROL[authUser.rol] : null;
+  setPermisoReservas(panel === 'ADMIN' || panel === 'RECEPCION'); // antes de que corran los efectos de carga
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
   
   // Sincronización Central de Habitaciones y Reservas (Compartido entre Landing y Dashboards)
   const [rooms, setRooms] = useState(INITIAL_ROOMS);
@@ -235,28 +249,46 @@ function App() {
   // Datos del backend en vivo (carga inicial + refresco cada 10 s)
   useLiveSync(setRooms, setReservations);
 
-  // Soporte directo para hash en la URL (ej: localhost:5173/#admin o /#recepcion)
+  // Restaurar sesión al cargar y reaccionar a sesión vencida
   useEffect(() => {
-    const handleHashChange = () => {
+    api.me().then((u) => { if (u) setAuthUser(u); setAuthChecked(true); });
+    const onExpired = () => {
+      if (!authUserRef.current) return;
+      setAuthUser(null);
+      setCurrentView('landing');
+      window.location.hash = '';
+      setLoginError('Tu sesión expiró. Inicia sesión nuevamente.');
+      setIsLoginModalOpen(true);
+    };
+    window.addEventListener('auth:expired', onExpired);
+    return () => window.removeEventListener('auth:expired', onExpired);
+  }, []);
+
+  // Al cambiar de sesión, recargar de inmediato lo que el nuevo rol puede ver
+  useEffect(() => {
+    if (panel) api.syncAll(setRooms, setReservations);
+  }, [panel]);
+
+  // Navegación por hash: un panel solo se abre con sesión y únicamente el del rol del usuario
+  useEffect(() => {
+    if (!authChecked) return;
+    const apply = () => {
       const hash = window.location.hash.toLowerCase().replace('#', '');
-      if (hash === 'admin') {
-        setActiveRole('ADMIN');
-        setCurrentView('dashboard');
-      } else if (hash === 'recepcion' || hash === 'reception') {
-        setActiveRole('RECEPCION');
-        setCurrentView('dashboard');
-      } else if (hash === 'limpieza' || hash === 'housekeeping') {
-        setActiveRole('LIMPIEZA');
-        setCurrentView('dashboard');
-      } else if (hash === 'web' || hash === '') {
+      const hashPanel = PANEL_BY_HASH[hash];
+      const user = authUserRef.current; // el ref evita leer una sesión desactualizada
+      const userPanel = user ? PANEL_BY_ROL[user.rol] : null;
+      if (user) {
+        if (hashPanel && hashPanel !== userPanel) { window.location.hash = HASH_BY_PANEL[userPanel]; return; }
+        setCurrentView(hashPanel ? 'dashboard' : 'landing');
+      } else {
         setCurrentView('landing');
+        if (hashPanel) { window.location.hash = ''; setIsLoginModalOpen(true); }
       }
     };
-
-    handleHashChange();
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, []);
+    apply();
+    window.addEventListener('hashchange', apply);
+    return () => window.removeEventListener('hashchange', apply);
+  }, [authUser, authChecked, panel]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -266,13 +298,38 @@ function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleEnterStaffPortal = (role) => {
-    setActiveRole(role);
-    setCurrentView('dashboard');
-    setIsLoginModalOpen(false);
-    if (role === 'ADMIN') window.location.hash = '#admin';
-    else if (role === 'RECEPCION') window.location.hash = '#recepcion';
-    else if (role === 'LIMPIEZA') window.location.hash = '#limpieza';
+  // Botón "Panel Empleados": con sesión va a su panel; sin sesión pide credenciales
+  const handleOpenStaffPortal = () => {
+    if (authUser) window.location.hash = HASH_BY_PANEL[panel];
+    else { setLoginError(''); setIsLoginModalOpen(true); }
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    setLoginLoading(true);
+    try {
+      const u = await api.login(loginEmail, loginPassword);
+      authUserRef.current = u; // disponible al instante para el manejador del hash
+      setAuthUser(u);
+      setLoginPassword('');
+      setIsLoginModalOpen(false);
+      setCurrentView('dashboard');
+      window.location.hash = HASH_BY_PANEL[PANEL_BY_ROL[u.rol]];
+    } catch (err) {
+      setLoginError(err.message);
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await api.logout();
+    authUserRef.current = null;
+    setAuthUser(null);
+    setReservations(INITIAL_RESERVATIONS);
+    setCurrentView('landing');
+    window.location.hash = '';
   };
 
   const handleReturnToLanding = () => {
@@ -345,10 +402,14 @@ function App() {
   };
 
   // Si estamos en el portal de empleados, renderizamos el Dashboard correspondiente con estado sincronizado
-  if (currentView === 'dashboard') {
+  if (!authChecked) return null;
+
+  if (currentView === 'dashboard' && authUser) {
     return (
       <DashboardContainer 
-        initialRole={activeRole} 
+        initialRole={panel} 
+        user={authUser}
+        onLogout={handleLogout}
         onGoToLanding={handleReturnToLanding}
         rooms={rooms}
         setRooms={setRooms}
@@ -383,10 +444,10 @@ function App() {
         </nav>
         <button 
           className="btn-panel-login"
-          onClick={() => setIsLoginModalOpen(true)}
+          onClick={handleOpenStaffPortal}
           style={{ cursor: 'pointer' }}
         >
-          Panel Empleados
+          {authUser ? 'Mi panel' : 'Panel Empleados'}
         </button>
       </header>
 
@@ -845,9 +906,9 @@ function App() {
           isOpen={isReceiptModalOpen}
           onClose={() => setIsReceiptModalOpen(false)}
           reservation={latestReservation}
-          onGoToRole={(role) => {
+          onGoToRole={() => {
             setIsReceiptModalOpen(false);
-            handleEnterStaffPortal(role);
+            handleOpenStaffPortal();
           }}
         />
       )}
@@ -869,127 +930,40 @@ function App() {
         />
       )}
 
-      {/* MODAL 4: LOGIN / PORTAL DE EMPLEADOS */}
+      {/* MODAL 4: INICIO DE SESIÓN (el rol lo determina el backend) */}
       {isLoginModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsLoginModalOpen(false)}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '640px' }}>
-            <div className="modal-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#0c1e36', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                  W
-                </div>
+          <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+            <form onSubmit={handleLogin}>
+              <div className="modal-header">
                 <div>
-                  <h3 style={{ margin: 0 }}>Portal de Empleados - Hotel Wimbledon</h3>
-                  <span style={{ fontSize: '12px', color: '#64748b' }}>Selecciona el rol con el que deseas ingresar</span>
+                  <h3 style={{ margin: 0 }}>Portal de Empleados</h3>
+                  <span style={{ fontSize: '12px', color: '#64748b' }}>Ingresa con tu correo y contraseña</span>
                 </div>
+                <button type="button" className="btn-action-icon" onClick={() => setIsLoginModalOpen(false)}>
+                  <X size={20} />
+                </button>
               </div>
-              <button className="btn-action-icon" onClick={() => setIsLoginModalOpen(false)}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="modal-body" style={{ padding: '24px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {/* 1. ADMINISTRADOR */}
-                <div 
-                  onClick={() => handleEnterStaffPortal('ADMIN')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '16px 20px',
-                    borderRadius: '12px',
-                    border: '1px solid #e2e8f0',
-                    background: '#f8fafc',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#2563eb'; e.currentTarget.style.backgroundColor = '#eff6ff'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.backgroundColor = '#f8fafc'; }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#2563eb', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Shield size={24} />
-                    </div>
-                    <div>
-                      <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', color: '#0f172a' }}>Panel de Administrador</h4>
-                      <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-                        Dashboard con KPIs, gestión de reservas, gestión de habitaciones y reportes PDF.
-                      </p>
-                    </div>
-                  </div>
-                  <ArrowRight size={20} color="#2563eb" />
+              <div className="modal-body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div className="form-group">
+                  <label>Correo electrónico</label>
+                  <input type="email" required autoFocus autoComplete="username" value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)} />
                 </div>
-
-                {/* 2. RECEPCIÓN */}
-                <div 
-                  onClick={() => handleEnterStaffPortal('RECEPCION')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '16px 20px',
-                    borderRadius: '12px',
-                    border: '1px solid #e2e8f0',
-                    background: '#f8fafc',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.backgroundColor = '#f0fdf4'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.backgroundColor = '#f8fafc'; }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#10b981', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <UserCheck size={24} />
-                    </div>
-                    <div>
-                      <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', color: '#0f172a' }}>Panel de Recepción (Ana Torres)</h4>
-                      <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-                        Métricas de hoy, reservas del día, acciones rápidas, estado de habitaciones y ficha de huésped.
-                      </p>
-                    </div>
-                  </div>
-                  <ArrowRight size={20} color="#10b981" />
+                <div className="form-group">
+                  <label>Contraseña</label>
+                  <input type="password" required autoComplete="current-password" value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)} />
                 </div>
-
-                {/* 3. LIMPIEZA */}
-                <div 
-                  onClick={() => handleEnterStaffPortal('LIMPIEZA')}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '16px 20px',
-                    borderRadius: '12px',
-                    border: '1px solid #e2e8f0',
-                    background: '#f8fafc',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#f59e0b'; e.currentTarget.style.backgroundColor = '#fffbeb'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.backgroundColor = '#f8fafc'; }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: '#f59e0b', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Sparkles size={24} />
-                    </div>
-                    <div>
-                      <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', color: '#0f172a' }}>Panel de Limpieza (Rosa Flores)</h4>
-                      <p style={{ margin: 0, fontSize: '13px', color: '#64748b' }}>
-                        Tablero de aseo por pisos, checklists interactivos y reporte de averías técnicas.
-                      </p>
-                    </div>
-                  </div>
-                  <ArrowRight size={20} color="#f59e0b" />
-                </div>
+                {loginError && <p style={{ color: '#dc2626', fontSize: '13px', margin: 0 }}>{loginError}</p>}
               </div>
-            </div>
-
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setIsLoginModalOpen(false)}>
-                Cerrar
-              </button>
-            </div>
+              <div className="modal-footer">
+                <button type="button" className="btn-secondary" onClick={() => setIsLoginModalOpen(false)}>Cancelar</button>
+                <button type="submit" className="btn-primary" disabled={loginLoading}>
+                  {loginLoading ? 'Ingresando...' : 'Ingresar'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
