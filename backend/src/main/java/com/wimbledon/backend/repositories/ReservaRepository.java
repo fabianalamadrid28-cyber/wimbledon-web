@@ -35,6 +35,8 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
             @Param("estados") List<EstadoReserva> estados
     );
 
+    List<Reserva> findByEstado(EstadoReserva estado);
+
     // Reservas PENDIENTE creadas antes del límite (no confirmadas a tiempo)
     List<Reserva> findByEstadoAndCreadaEnBefore(EstadoReserva estado, LocalDateTime limite);
 }

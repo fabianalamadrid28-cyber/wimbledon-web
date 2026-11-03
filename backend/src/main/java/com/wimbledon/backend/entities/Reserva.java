@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import com.wimbledon.backend.services.ReglasReserva;
 
 @Entity
 @Table(name = "reservas")
@@ -105,12 +106,25 @@ public class Reserva {
         this.numeroOperacion = numeroOperacion;
     }
 
+    // --- Campos calculados (solo salida JSON): el frontend los usa para activar/desactivar botones.
+    // La regla real la aplica el backend en ReservaService; esto solo la refleja con la hora de Lima actual.
+    public String getMotivoNoEditable() {
+        return ReglasReserva.motivoNoEditable(this, ReglasReserva.ahora());
+    }
 
+    public boolean isPuedeEditar() {
+        return getMotivoNoEditable() == null;
+    }
 
+    public String getMotivoNoCancelable() {
+        return ReglasReserva.motivoNoCancelable(this, ReglasReserva.ahora());
+    }
 
-    
+    public boolean isPuedeCancelar() {
+        return getMotivoNoCancelable() == null;
+    }
 
-
-
-    
+    public boolean isExcedida() {
+        return ReglasReserva.excedida(this, ReglasReserva.ahora());
+    }
 }
