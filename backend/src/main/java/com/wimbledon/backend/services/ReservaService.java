@@ -85,7 +85,7 @@ public class ReservaService {
         Reserva guardada = reservaRepository.save(reserva);
         sincronizarHabitacion(guardada);
         return guardada;
-    }
+    
 
     @Transactional
     public Reserva actualizarReserva(Long id, Reserva datos) {

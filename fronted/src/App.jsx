@@ -15,9 +15,12 @@ import {
   CheckCircle2 
 } from 'lucide-react';
 import { INITIAL_ROOMS, INITIAL_RESERVATIONS, api } from './services/api';
+import useLiveSync from './services/useLiveSync';
 import BookingModal from './components/modals/BookingModal';
 import ReceiptModal from './components/modals/ReceiptModal';
 import MenuDetailModal from './components/modals/MenuDetailModal';
+import EfectosNavidad from './components/common/EfectosNavidad';
+import HABITACIONES_REALES from './data/habitaciones.json';
 
 /* ---------- DATOS COMPLETOS DE LA CARTA Y PROMOCIONES ---------- */
 export const MENU_CATEGORIES_DATA = [
@@ -141,14 +144,16 @@ export const MENU_CATEGORIES_DATA = [
 ];
 
 /* ---------- DATOS EDITABLES DE HABITACIONES Y OFERTAS ---------- */
-const tiposHabitaciones = [
-  { id: 1, numero: '101', tipo: 'Simple', nombre: 'Suite Simple Estándar', desc: 'Cama queen, ducha española y TV smart. Ideal para una escapada tranquila.', desde: 'S/ 120', img: '/suite-simple.jpg' },
-  { id: 2, numero: '102', tipo: 'Doble', nombre: 'Suite Temática Premium', desc: 'Ambientes decorados con iluminación ambiental y música personalizadas.', desde: 'S/ 160', img: '/suite-tematica.jpg' },
-  { id: 3, numero: '304', tipo: 'Suite', nombre: 'Suite Automatizada VIP', desc: 'Control total del ambiente desde tu celular, sin contacto con personal.', desde: 'S/ 200', img: '/suite-vip.jpg' },
-  { id: 5, numero: '201', tipo: 'Suite', nombre: 'Suite con Jacuzzi', desc: 'Jacuzzi privado para dos, sábanas de algodón y amenities de lujo.', desde: 'S/ 220', img: '/suite-jacuzzi.jpg' },
-  { id: 7, numero: '203', tipo: 'Suite', nombre: 'Suite con Sauna', desc: 'Sauna privado y ducha de lluvia para una experiencia completa de relajación.', desde: 'S/ 240', img: '/suite-sauna.jpg' },
-  { id: 4, numero: '108', tipo: 'Suite', nombre: 'Suite con Cochera Directa', desc: 'Estacionamiento privado y directo a la habitación para máxima discreción.', desde: 'S/ 180', img: '/suite-cochera.jpg' }
-];
+const tipoDe = (nombre) => /presidencial/i.test(nombre) ? 'Presidencial' : /simple/i.test(nombre) ? 'Simple' : /delux/i.test(nombre) ? 'Delux' : 'Suite';
+const tiposHabitaciones = HABITACIONES_REALES.map((h) => ({
+  id: h.id,
+  numero: String(h.id),
+  tipo: tipoDe(h.nombre),
+  nombre: h.nombre,
+  desc: `Incluye: ${h.equipamiento.join(', ')}.`,
+  desde: `S/ ${Number(h.precio_exacto.replace(/[^\d.]/g, '')).toFixed(2)}`,
+  img: h.imagen_url,
+}));
 
 const ofertas = [
   { id: 'sanvalentin', etiqueta: 'Festividad', nombre: 'San Valentín Inolvidable', precio: 'S/ 299', valor: 299, desc: 'Suite decorada con pétalos, espumante, fresas con chocolate y late check-out.', img: '/oferta-sanvalentin.jpg' },
@@ -227,17 +232,8 @@ function App() {
   const [calendarioActivo, setCalendarioActivo] = useState(null);
   const [diaSeleccionadoCal, setDiaSeleccionadoCal] = useState(null);
 
-  // Cargar datos iniciales del backend si está encendido
-  useEffect(() => {
-    async function initData() {
-      const dbRooms = await api.getHabitaciones();
-      if (dbRooms && dbRooms.length > 0) setRooms(dbRooms);
-
-      const dbRes = await api.getReservas();
-      if (dbRes && dbRes.length > 0) setReservations(dbRes);
-    }
-    initData();
-  }, []);
+  // Datos del backend en vivo (carga inicial + refresco cada 10 s)
+  useLiveSync(setRooms, setReservations);
 
   // Soporte directo para hash en la URL (ej: localhost:5173/#admin o /#recepcion)
   useEffect(() => {
@@ -311,21 +307,29 @@ function App() {
 
   // Confirmar y Guardar Reserva en Base de Datos y Estado Central
   const handleConfirmBooking = async (formData) => {
-    setIsBookingModalOpen(false);
-
     // Guardar vía API (conecta a POST /api/v1/reservas o fallback local)
-    const nuevaReserva = await api.createReserva(formData);
+    let nuevaReserva;
+    try {
+      nuevaReserva = await api.createReserva(formData);
+    } catch (e) {
+      // Rechazada por el backend (p. ej. solapamiento): se mantiene el formulario abierto
+      alert(e.message);
+      api.syncAll(setRooms, setReservations);
+      return;
+    }
+    setIsBookingModalOpen(false);
 
     // Agregar de inmediato a la lista reactiva de reservas
     setReservations(prev => [nuevaReserva, ...prev]);
 
-    // Marcar habitación como OCUPADA si estaba disponible
+    // La habitación deja de estar disponible mientras la reserva esté vigente
     setRooms(prevRooms => prevRooms.map(r => {
-      if (String(r.numero) === String(formData.habitacion)) {
-        return { ...r, estado: 'OCUPADA' };
+      if (String(r.numero) === String(formData.habitacion) && r.estado === 'DISPONIBLE') {
+        return { ...r, estado: 'RESERVADA' };
       }
       return r;
     }));
+    api.syncAll(setRooms, setReservations);
 
     // Abrir de inmediato la Boleta de Pago oficial
     setLatestReservation({
@@ -356,6 +360,7 @@ function App() {
 
   return (
     <div className="hotel-container">
+      <EfectosNavidad />
       {/* NAVBAR */}
       <header className="navbar">
         <div 

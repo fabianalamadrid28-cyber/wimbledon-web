@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { api, aplicarEstadoReservaLocal } from '../../services/api';
 import { 
   Bed, 
   CalendarCheck, 
@@ -44,28 +45,36 @@ export default function AdminDashboard({
     setIsRoomModalOpen(true);
   };
 
-  const handleSaveRoom = (savedRoom) => {
+  const handleSaveRoom = async (savedRoom) => {
     if (savedRoom.id) {
       setRooms(prev => prev.map(r => r.id === savedRoom.id ? savedRoom : r));
+      await api.updateHabitacion(savedRoom.id, savedRoom);
     } else {
-      const newRoom = {
+      const newRoom = await api.createHabitacion({
         ...savedRoom,
-        id: Date.now(),
         numero: savedRoom.numero || '104'
-      };
+      });
       setRooms(prev => [newRoom, ...prev]);
     }
+    api.syncAll(setRooms, setReservations);
   };
 
-  const handleDeleteRoom = (id) => {
+  const handleDeleteRoom = async (id) => {
     if (window.confirm("¿Seguro que deseas eliminar esta habitación?")) {
       setRooms(prev => prev.filter(r => r.id !== id));
+      await api.deleteHabitacion(id);
+      api.syncAll(setRooms, setReservations);
     }
   };
 
-  const handleDeleteReservation = (id) => {
-    if (window.confirm("¿Seguro que deseas cancelar/eliminar esta reserva?")) {
-      setReservations(prev => prev.filter(r => r.id !== id));
+  // Cancelar libera la habitación; la reserva queda en el historial como Cancelada
+  const handleDeleteReservation = async (id) => {
+    if (window.confirm("¿Seguro que deseas cancelar esta reserva?")) {
+      const res = reservations.find(r => r.id === id);
+      if (!res) return;
+      aplicarEstadoReservaLocal(setReservations, setRooms, res, 'Cancelada');
+      await api.updateEstadoReserva(id, 'Cancelada');
+      api.syncAll(setRooms, setReservations);
     }
   };
 
@@ -270,6 +279,8 @@ export default function AdminDashboard({
                   <option value="Confirmada">Confirmadas</option>
                   <option value="Pendiente">Pendientes</option>
                   <option value="Check-in">Check-in</option>
+                  <option value="Finalizada">Finalizadas</option>
+                  <option value="Cancelada">Canceladas</option>
                 </select>
               </div>
 

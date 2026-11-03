@@ -1,6 +1,7 @@
 package com.wimbledon.backend.repositories;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.wimbledon.backend.entities.Reserva;
+import com.wimbledon.backend.enums.EstadoReserva;
 
 @Repository
 public interface ReservaRepository extends JpaRepository<Reserva, Long> {
@@ -25,4 +27,14 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
             @Param("habitacionId") Long habitacionId, 
             @Param("fecha") LocalDate fecha
     );
+
+    // Reservas vigentes (que ocupan la habitación) de una habitación
+    @Query("SELECT r FROM Reserva r WHERE r.habitacion.id = :habitacionId AND r.estado IN :estados")
+    List<Reserva> findByHabitacionAndEstados(
+            @Param("habitacionId") Long habitacionId,
+            @Param("estados") List<EstadoReserva> estados
+    );
+
+    // Reservas PENDIENTE creadas antes del límite (no confirmadas a tiempo)
+    List<Reserva> findByEstadoAndCreadaEnBefore(EstadoReserva estado, LocalDateTime limite);
 }

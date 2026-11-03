@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Entity
@@ -65,4 +66,12 @@ public class Reserva {
     private EstadoReserva estado; // PENDIENTE, CONFIRMADA, CHECKIN, FINALIZADA, CANCELADA
 
     private String notasAdicionales;
+
+    // Momento de creación: sirve para anular reservas PENDIENTE que no se confirman a tiempo
+    private LocalDateTime creadaEn;
+
+    @PrePersist
+    void alCrear() {
+        if (creadaEn == null) creadaEn = LocalDateTime.now();
+    }
 }

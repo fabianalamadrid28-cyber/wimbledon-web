@@ -714,6 +714,16 @@
   color: #b45309;
 }
 
+.badge-status.reservada {
+  background-color: #ede9fe;
+  color: #6d28d9;
+}
+
+.badge-status.finalizada {
+  background-color: #e2e8f0;
+  color: #475569;
+}
+
 .badge-status.checkin,
 .badge-status.ocupada,
 .badge-status.en_proceso {

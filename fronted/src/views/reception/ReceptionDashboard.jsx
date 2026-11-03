@@ -20,6 +20,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { DonutChartSvg } from '../../components/common/Charts';
+import { api, aplicarEstadoReservaLocal } from '../../services/api';
 import GuestDetailModal from '../../components/modals/GuestDetailModal';
 
 export default function ReceptionDashboard({
@@ -27,6 +28,7 @@ export default function ReceptionDashboard({
   setCurrentTab,
   reservations = [],
   setReservations,
+  acciones,
   rooms = [],
   setRooms,
   searchTerm = ''
@@ -37,25 +39,19 @@ export default function ReceptionDashboard({
   const [isGuestDetailOpen, setIsGuestDetailOpen] = useState(false);
 
   // Handle Check-in action
-  const handlePerformCheckin = (resId) => {
-    setReservations(prev => prev.map(r => {
-      if (r.id === resId) {
-        return { ...r, estado: 'Check-in' };
-      }
-      return r;
-    }));
-    alert("¡Check-in realizado con éxito! La habitación ahora figura como Ocupada.");
-  };
+  const handlePerformCheckin = (resId) => acciones.cambiarEstadoReserva(resId, 'CHECKIN');
 
   // Handle Confirm action
-  const handleConfirmReservation = (resId) => {
-    setReservations(prev => prev.map(r => {
-      if (r.id === resId) {
-        return { ...r, estado: 'Confirmada' };
-      }
-      return r;
-    }));
-    alert("¡Reserva confirmada exitosamente!");
+  const handleConfirmReservation = (resId) => acciones.cambiarEstadoReserva(resId, 'CONFIRMADA');
+
+  // Handle Check-out action (la habitación pasa sola a limpieza pendiente en el servidor)
+  const handlePerformCheckout = (resId) => acciones.cambiarEstadoReserva(resId, 'FINALIZADA');
+
+  // Cancelar (solo PENDIENTE o CONFIRMADA; el servidor valida la transición)
+  const handleCancelReservation = (resId) => {
+    if (window.confirm("¿Cancelar esta reserva? La habitación quedará libre.")) {
+      acciones.cambiarEstadoReserva(resId, 'CANCELADA');
+    }
   };
 
   // Filter reservations based on active tab
@@ -239,13 +235,24 @@ export default function ReceptionDashboard({
                           >
                             Confirmar
                           </button>
-                        ) : (
+                        ) : String(res.estado || '').toLowerCase() === 'check-in' ? (
                           <button 
                             className="btn-checkin-action" 
                             style={{ backgroundColor: '#10b981' }}
-                            onClick={(e) => { e.stopPropagation(); alert(`Habitación ${res.habitacion} registrada correctamente.`); }}
+                            onClick={(e) => { e.stopPropagation(); handlePerformCheckout(res.id); }}
                           >
-                            Activa
+                            Check-out &gt;
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '12px', color: '#64748b' }}>{res.estado}</span>
+                        )}
+                        {['pendiente', 'confirmada'].includes(String(res.estado || '').toLowerCase()) && (
+                          <button 
+                            className="btn-action-icon"
+                            title="Cancelar reserva"
+                            onClick={(e) => { e.stopPropagation(); handleCancelReservation(res.id); }}
+                          >
+                            ✕
                           </button>
                         )}
                         <button 
