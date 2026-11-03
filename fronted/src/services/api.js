@@ -2,6 +2,27 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
 
+// Todas las llamadas envían la cookie de sesión. Si el backend responde 401 (sesión vencida), se avisa a la app.
+const apiFetch = async (url, opts = {}) => {
+  const res = await fetch(url, { ...opts, credentials: 'include' });
+  if (res.status === 401 && !String(url).includes('/auth/')) {
+    window.dispatchEvent(new Event('auth:expired'));
+  }
+  return res;
+};
+
+const JSON_HEADERS = { 'Content-Type': 'application/json' };
+
+async function jsonOrThrow(res, fallbackMsg) {
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.mensaje || fallbackMsg);
+  return data;
+}
+
+// Solo ADMIN y RECEPCION pueden leer reservas (lo valida el backend); App.jsx actualiza este permiso según la sesión.
+let verReservas = false;
+export function setPermisoReservas(valor) { verReservas = Boolean(valor); }
+
 // Initial fallback mock data matching the exact mockups
 export const INITIAL_ROOMS = [
   { id: 1, numero: '101', tipo: 'Simple', nombreTema: 'Suite Simple', precioBloque: 120.00, capacidad: 1, piso: 1, estado: 'DISPONIBLE', descripcion: 'Habitación simple acogedora con cama queen y TV.', urlImagen: '/suite-simple.jpg' },
@@ -144,6 +165,44 @@ export function aplicarEstadoReservaLocal(setReservations, setRooms, reserva, nu
 }
 
 export const api = {
+  // Autenticación (el rol lo determina el backend desde la base de datos)
+  async login(email, password) {
+    let res;
+    try {
+      res = await apiFetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ email, password })
+      });
+    } catch (e) {
+      throw new Error('No se pudo conectar con el servidor.');
+    }
+    return jsonOrThrow(res, 'No se pudo iniciar sesión.');
+  },
+
+  async me() {
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/auth/me`);
+      return res.ok ? await res.json() : null;
+    } catch (e) { return null; }
+  },
+
+  async logout() {
+    try { await apiFetch(`${API_BASE_URL}/auth/logout`, { method: 'POST' }); } catch (e) {}
+  },
+
+  // Gestión de cuentas (solo ADMIN)
+  async getUsuarios() {
+    const res = await apiFetch(`${API_BASE_URL}/usuarios`);
+    return jsonOrThrow(res, 'No se pudieron cargar los usuarios.');
+  },
+  async createUsuario(data) {
+    const res = await apiFetch(`${API_BASE_URL}/usuarios`, { method: 'POST', headers: JSON_HEADERS, body: JSON.stringify(data) });
+    return jsonOrThrow(res, 'No se pudo crear el usuario.');
+  },
+  async updateUsuario(id, data) {
+    const res = await apiFetch(`${API_BASE_URL}/usuarios/${id}`, { method: 'PUT', headers: JSON_HEADERS, body: JSON.stringify(data) });
+    return jsonOrThrow(res, 'No se pudo actualizar el usuario.');
+  },
+
   // Recarga habitaciones y reservas desde el backend; si no responde, deja el estado local intacto
   async syncAll(setRooms, setReservations) {
     const [dbRooms, dbReservas] = await Promise.all([
@@ -157,7 +216,7 @@ export const api = {
   // Habitaciones
   async getHabitaciones({ strict = false } = {}) {
     try {
-      const res = await fetch(`${API_BASE_URL}/habitaciones`);
+      const res = await apiFetch(`${API_BASE_URL}/habitaciones`);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -173,7 +232,7 @@ export const api = {
 
   async updateHabitacion(id, roomData) {
     try {
-      const res = await fetch(`${API_BASE_URL}/habitaciones/${id}`, {
+      const res = await apiFetch(`${API_BASE_URL}/habitaciones/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(roomData)
@@ -188,7 +247,7 @@ export const api = {
 
   async createHabitacion(roomData) {
     try {
-      const res = await fetch(`${API_BASE_URL}/habitaciones`, {
+      const res = await apiFetch(`${API_BASE_URL}/habitaciones`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(roomData)
@@ -200,12 +259,12 @@ export const api = {
 
   async deleteHabitacion(id) {
     try {
-      await fetch(`${API_BASE_URL}/habitaciones/${id}`, { method: 'DELETE' });
+      await apiFetch(`${API_BASE_URL}/habitaciones/${id}`, { method: 'DELETE' });
     } catch (e) {}
   },
 
   async updateEstadoHabitacion(id, nuevoEstado) {
-    const res = await fetch(`${API_BASE_URL}/habitaciones/${id}/estado`, {
+    const res = await apiFetch(`${API_BASE_URL}/habitaciones/${id}/estado`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ estado: nuevoEstado })
@@ -216,8 +275,9 @@ export const api = {
 
   // Reservas
   async getReservas({ strict = false } = {}) {
+    if (!verReservas) return strict ? null : INITIAL_RESERVATIONS.map((r, i) => normalizeReservation(r, i));
     try {
-      const res = await fetch(`${API_BASE_URL}/reservas`);
+      const res = await apiFetch(`${API_BASE_URL}/reservas`);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -230,7 +290,7 @@ export const api = {
   },
 
   async updateEstadoReserva(id, nuevoEstado) {
-    const res = await fetch(`${API_BASE_URL}/reservas/${id}/estado`, {
+    const res = await apiFetch(`${API_BASE_URL}/reservas/${id}/estado`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ estado: ESTADO_RESERVA_API[nuevoEstado] || String(nuevoEstado).toUpperCase() })
@@ -241,7 +301,7 @@ export const api = {
 
   // Editar datos de una reserva (el servidor valida: solo PENDIENTE/CONFIRMADA y antes de la hora de entrada)
   async editarReserva(id, datos) {
-    const res = await fetch(`${API_BASE_URL}/reservas/${id}`, {
+    const res = await apiFetch(`${API_BASE_URL}/reservas/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(datos)
@@ -252,7 +312,7 @@ export const api = {
 
   // Extender una reserva con el huésped dentro (CHECKIN): suma horas y cobro
   async extenderReserva(id, horas, monto) {
-    const res = await fetch(`${API_BASE_URL}/reservas/${id}/extender`, {
+    const res = await apiFetch(`${API_BASE_URL}/reservas/${id}/extender`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ horas, monto: monto === '' || monto == null ? null : monto })
@@ -264,11 +324,11 @@ export const api = {
   // Lectura estricta para los paneles: sin datos de ejemplo si el servidor falla (lanza el error)
   async refrescarTodo() {
     const [hr, rr] = await Promise.all([
-      fetch(`${API_BASE_URL}/habitaciones`),
-      fetch(`${API_BASE_URL}/reservas`)
+      apiFetch(`${API_BASE_URL}/habitaciones`),
+      verReservas ? apiFetch(`${API_BASE_URL}/reservas`) : Promise.resolve(null)
     ]).catch(() => { throw new Error('Sin conexión con el servidor'); });
-    if (!hr.ok || !rr.ok) throw new Error(`El servidor respondió ${!hr.ok ? hr.status : rr.status}`);
-    const [rooms, reservas] = await Promise.all([hr.json(), rr.json()]);
+    if (!hr.ok || (rr && !rr.ok)) throw new Error(`El servidor respondió ${!hr.ok ? hr.status : rr.status}`);
+    const [rooms, reservas] = await Promise.all([hr.json(), rr ? rr.json() : Promise.resolve([])]);
     return {
       rooms: rooms.map(normalizeRoom),
       reservas: reservas.map((r, i) => normalizeReservation(r, i))
@@ -291,7 +351,7 @@ export const api = {
           id: reservaData.habitacionId || 1
         }
       };
-      const res = await fetch(`${API_BASE_URL}/reservas`, {
+      const res = await apiFetch(`${API_BASE_URL}/reservas`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

@@ -1,9 +1,8 @@
 import React from 'react';
-import { Search, Bell, Menu, Shield, UserCheck, Sparkles } from 'lucide-react';
+import { Search, Bell, Menu } from 'lucide-react';
 
 export default function TopHeader({ 
   currentRole, 
-  onRoleChange, 
   user, 
   onToggleSidebar, 
   searchTerm,
@@ -34,33 +33,8 @@ export default function TopHeader({
         </div>
       </div>
 
-      {/* Right side: Role Switcher + Notifications + Profile */}
+      {/* Right side: Notifications + Profile */}
       <div className="dash-topbar-right">
-        {/* Role Quick Switcher */}
-        <div className="role-switcher-banner" title="Cambiar rol">
-          <button 
-            className={`role-switcher-btn ${currentRole === 'ADMIN' ? 'active' : ''}`}
-            onClick={() => onRoleChange('ADMIN')}
-          >
-            <Shield size={14} />
-            <span>Admin</span>
-          </button>
-          <button 
-            className={`role-switcher-btn ${currentRole === 'RECEPCION' ? 'active' : ''}`}
-            onClick={() => onRoleChange('RECEPCION')}
-          >
-            <UserCheck size={14} />
-            <span>Recepción</span>
-          </button>
-          <button 
-            className={`role-switcher-btn ${currentRole === 'LIMPIEZA' ? 'active' : ''}`}
-            onClick={() => onRoleChange('LIMPIEZA')}
-          >
-            <Sparkles size={14} />
-            <span>Limpieza</span>
-          </button>
-        </div>
-
         {/* Notifications */}
         <button className="btn-icon-top" title="Notificaciones">
           <Bell size={18} />
