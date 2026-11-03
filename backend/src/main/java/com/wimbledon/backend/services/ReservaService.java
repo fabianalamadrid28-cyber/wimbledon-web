@@ -26,10 +26,21 @@ public class ReservaService {
 
     private final ReservaRepository reservaRepository;
     private final HabitacionRepository habitacionRepository;
+    private final ClienteService clienteService;
 
-    public ReservaService(ReservaRepository reservaRepository, HabitacionRepository habitacionRepository) {
+    public ReservaService(ReservaRepository reservaRepository, HabitacionRepository habitacionRepository,
+                          ClienteService clienteService) {
         this.reservaRepository = reservaRepository;
         this.habitacionRepository = habitacionRepository;
+        this.clienteService = clienteService;
+    }
+
+    // Guarda (o actualiza) al cliente de la reserva en la tabla "clientes"
+    private void registrarCliente(Reserva reserva) {
+        String documento = reserva.getDocumentoHuesped();
+        String nombre = reserva.getNombreHuesped();
+        if (documento == null || documento.isBlank() || nombre == null || nombre.isBlank()) return;
+        clienteService.registrarOActualizar(documento, nombre, reserva.getTelefonoWhatsApp(), reserva.getEmailHuesped());
     }
 
     public List<Reserva> listarTodas() {
@@ -70,10 +81,11 @@ public class ReservaService {
             reserva.setFechaReserva(LocalDate.now());
         }
 
+        registrarCliente(reserva);
         Reserva guardada = reservaRepository.save(reserva);
         sincronizarHabitacion(guardada);
         return guardada;
-    }
+    
 
     @Transactional
     public Reserva actualizarReserva(Long id, Reserva datos) {
@@ -242,6 +254,7 @@ public class ReservaService {
             nuevaReserva.setCodigo("#R-" + (1000 + (int)(Math.random() * 9000)));
         }
 
+        registrarCliente(nuevaReserva);
         Reserva guardada = reservaRepository.save(nuevaReserva);
         sincronizarHabitacion(guardada);
         return guardada;
