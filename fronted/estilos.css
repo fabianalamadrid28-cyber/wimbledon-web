@@ -1272,137 +1272,82 @@ section[id] {
 /* ==========================================================================
    19. HABITACIONES (CARTAS DE CONTENIDO)
    ========================================================================== */
-.content-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.75rem;
-  text-align: left;
-  animation: fadeIn 0.4s ease;
-  margin-top: 2rem;
+.rooms-grid {
+  row-gap: 1.75rem;
   padding-bottom: 3rem;
+  animation: fadeIn 0.4s ease;
 }
-.content-card {
+.room-card .media { aspect-ratio: 4 / 3; }
+.room-card .card-desc {
+  min-height: 3.2em;
+}
+.room-preview {
   display: flex;
   flex-direction: column;
-  background-color: var(--bg-dark-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  overflow: hidden;
-  transition: transform 0.3s ease, border-color 0.3s ease;
-}
-.content-card:hover {
-  transform: translateY(-6px);
-  border-color: var(--gold-primary);
-}
-.content-card-media {
-  position: relative;
-  height: 210px;
-  overflow: hidden;
-}
-.content-card-media img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.45s ease;
-}
-.content-card:hover .content-card-media img { transform: scale(1.07); }
-.content-card-tag {
-  position: absolute;
-  bottom: 0.75rem;
-  left: 0.75rem;
-  background: rgba(5, 5, 5, 0.75);
-  border: 1px solid var(--gold-primary);
-  color: var(--gold-primary);
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
-}
-.content-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 1.25rem 1.5rem 1.5rem;
-  flex: 1;
-}
-.content-card-header { display: flex; flex-direction: column; gap: 0.25rem; }
-.content-card-kind {
-  font-size: 0.65rem;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--gold-primary);
-  font-weight: 700;
-}
-.content-card-header h3 {
-  font-family: var(--font-serif);
-  color: #FFFFFF;
-  font-size: 1.35rem;
-  line-height: 1.25;
-  margin: 0;
-}
-.content-card-intro {
-  color: var(--text-muted);
-  font-size: 0.85rem;
-  line-height: 1.6;
-  margin: 0;
-}
-.content-equipment h4 {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  color: var(--gold-primary);
+  gap: 2px;
   border-top: 1px solid var(--border-color);
+  padding-top: 0.75rem;
+  margin-top: auto;
+}
+.room-preview-label {
+  color: var(--text-muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.room-preview-items {
+  color: #F5EDE2;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+.room-content-panel {
+  border-top: 1px solid var(--border-color);
+  margin-top: 0.9rem;
   padding-top: 0.9rem;
+  animation: fadeIn 0.3s ease;
+}
+.room-content-panel h4 {
+  color: var(--gold-primary);
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
   margin-bottom: 0.6rem;
 }
-.content-equipment-list {
+.room-content-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 0.4rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
-.content-equipment-list li {
+.room-content-list li {
   position: relative;
   padding-left: 1.15rem;
   color: #D9D7D2;
   font-size: 0.78rem;
   line-height: 1.45;
 }
-.content-equipment-list li::before {
+.room-content-list li::before {
   content: "\2713";
   position: absolute;
   left: 0;
   color: var(--gold-primary);
   font-weight: 700;
 }
-.content-card-foot {
+.room-content-meta {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
   border-top: 1px solid var(--border-color);
-  padding-top: 0.9rem;
-  margin-top: auto;
-}
-.content-price { display: flex; flex-direction: column; }
-.content-price-label {
-  font-size: 0.65rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
   color: var(--text-muted);
-}
-.content-price-value {
-  font-family: var(--font-serif);
-  color: #FFFFFF;
-  font-size: 1.3rem;
-  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
 }
 @media (max-width: 600px) {
-  .content-cards-grid { grid-template-columns: 1fr; }
-  .content-card-media { height: 180px; }
-  .content-card-foot { flex-direction: column; align-items: flex-start; }
+  .room-card .card-desc { min-height: auto; }
+  .room-preview { margin-top: 0.5rem; }
+  .room-content-meta { flex-direction: column; gap: 0.25rem; }
 }

@@ -232,6 +232,7 @@ function App() {
   // UI Landing
   const [isSticky, setIsSticky] = useState(false);
   const [verTodasHab, setVerTodasHab] = useState(false);
+const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null);
   const [faqAbierta, setFaqAbierta] = useState(0);
   const [calendarioActivo, setCalendarioActivo] = useState(null);
   const [diaSeleccionadoCal, setDiaSeleccionadoCal] = useState(null);
@@ -638,41 +639,45 @@ function App() {
         </button>
 
         {verTodasHab && (
-          <div className="content-cards-grid max-container">
+          <div className="menu-grid max-container rooms-grid" style={{ marginTop: '2rem' }}>
             {tiposHabitaciones.map((t) => (
-              <article key={t.id} className="content-card">
-                <div className="content-card-media">
-                  <Img src={t.img} alt={t.nombre} />
-                  <span className="content-card-tag">{t.duracion.replace(/[()]/g, '')}</span>
-                </div>
-                <div className="content-card-body">
-                  <header className="content-card-header">
-                    <span className="content-card-kind">{t.tipo}</span>
-                    <h3>{t.nombre}</h3>
-                  </header>
-                  <p className="content-card-intro">{t.intro}</p>
-
-                  <div className="content-equipment">
-                    <h4>Qué contiene</h4>
-                    <ul className="content-equipment-list">
-                      {t.equipamiento.map((item, index) => (
-                        <li key={`${t.id}-${index}`}>{item}</li>
-                      ))}
-                    </ul>
+              <article key={t.id} className="menu-card room-card">
+                <div className="media"><Img src={t.img} alt={t.nombre} /></div>
+                <div className="menu-card-body">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px', marginBottom: '4px' }}>
+                    <h3 className="card-title" style={{ margin: 0 }}>{t.nombre}</h3>
+                    <span className="price-tag">Desde {t.precioExacto}</span>
+                  </div>
+                  <p className="card-desc">{t.intro}</p>
+                  <div className="room-preview">
+                    <span className="room-preview-label">Incluye</span>
+                    <span className="room-preview-items">
+                      {t.equipamiento.slice(0, 3).join(' · ')}{t.equipamiento.length > 3 ? ' · Y más' : ''}
+                    </span>
                   </div>
 
-                  <div className="content-card-foot">
-                    <div className="content-price">
-                      <span className="content-price-label">Precio</span>
-                      <span className="content-price-value">{t.precioExacto}</span>
+                  <button
+                    className="btn-menu-expand"
+                    aria-expanded={contenidoHabitacionActivo === t.id}
+                    onClick={() => setContenidoHabitacionActivo(contenidoHabitacionActivo === t.id ? null : t.id)}
+                  >
+                    {contenidoHabitacionActivo === t.id ? 'Ocultar contenido' : 'Desplegar contenido'} {contenidoHabitacionActivo === t.id ? '↑' : '↓'}
+                  </button>
+
+                  {contenidoHabitacionActivo === t.id && (
+                    <div className="room-content-panel">
+                      <h4>Qué contiene</h4>
+                      <ul className="room-content-list">
+                        {t.equipamiento.map((item, index) => (
+                          <li key={`${t.id}-${index}`}>{item}</li>
+                        ))}
+                      </ul>
+                      <div className="room-content-meta">
+                        <span>{t.duracion.replace(/[()]/g, '')}</span>
+                        <span>IGV incluido</span>
+                      </div>
                     </div>
-                    <button
-                      className="btn-link-gold"
-                      onClick={() => handleOpenBooking({ room: t })}
-                    >
-                      Reservar esta Suite
-                    </button>
-                  </div>
+                  )}
                 </div>
               </article>
             ))}
