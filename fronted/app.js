@@ -83,5 +83,68 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Error de conexión:", error);
             alert("No se pudo conectar con el servidor backend. Asegúrate de que Spring Boot esté encendido en el puerto 8080.");
         }
+
+
+        
+
+
+        document.addEventListener('DOMContentLoaded', function() {
+    // Cambia '#formulario-reserva' por el ID o clase real de tu formulario en el HTML
+    var contenedorFormulario = document.querySelector('#formulario-reserva');
+    
+    if (!contenedorFormulario) return;
+
+    // Creamos el contenedor de pago dinámicamente para evitar errores de comillas
+    var divPago = document.createElement('div');
+    divPago.id = 'seccion-pago';
+    divPago.style.marginTop = '15px';
+    divPago.style.padding = '10px';
+    divPago.style.border = '1px solid #ccc';
+    divPago.style.borderRadius = '5px';
+    
+    divPago.innerHTML = 
+        '<h4>Método de Pago</h4>' +
+        '<select id="metodoPago" required style="width: 100%; padding: 8px; margin-bottom: 10px;">' +
+            '<option value="">Seleccione billetera digital...</option>' +
+            '<option value="YAPE">Yape</option>' +
+            '<option value="PLIN">Plin</option>' +
+        '</select>' +
+        '<div id="qr-container" style="display:none; text-align: center;">' +
+            '<p style="font-size: 0.9em;">Escanea el QR o transfiere al <strong>999 888 777</strong></p>' +
+            '<img id="img-qr" src="" alt="Código QR" style="max-width: 150px; border-radius: 8px;" />' +
+            '<input type="text" id="numeroOperacion" placeholder="N° de Operación (ej. 1234567)" required style="width: 100%; padding: 8px; margin-top: 10px;">' +
+        '</div>';
+
+    // Lo insertamos antes del botón de enviar
+    var botonSubmit = contenedorFormulario.querySelector('button[type="submit"]');
+    if (botonSubmit) {
+        botonSubmit.parentNode.insertBefore(divPago, botonSubmit);
+    }
+
+    // Lógica para mostrar/ocultar el QR según lo que elija el usuario
+    document.getElementById('metodoPago').addEventListener('change', function(e) {
+        var qrContainer = document.getElementById('qr-container');
+        var imgQr = document.getElementById('img-qr');
+        var numOperacion = document.getElementById('numeroOperacion');
+
+        if (e.target.value === 'YAPE') {
+            imgQr.src = 'public/images/yape-qr.jpg'; // Ruta de tu imagen Yape
+            qrContainer.style.display = 'block';
+            numOperacion.required = true;
+        } else if (e.target.value === 'PLIN') {
+            imgQr.src = 'public/images/plin-qr.jpg'; // Ruta de tu imagen Plin
+            qrContainer.style.display = 'block';
+            numOperacion.required = true;
+        } else {
+            qrContainer.style.display = 'none';
+            numOperacion.required = false;
+            numOperacion.value = ''; // Limpiamos el campo
+        }
+    });
+});
+
+
+        
+    
     });
 });

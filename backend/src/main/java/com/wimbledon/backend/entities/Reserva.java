@@ -15,6 +15,12 @@ import java.time.LocalTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+
+
+
+
+
+
 public class Reserva {
 
     @Id
@@ -74,4 +80,37 @@ public class Reserva {
     void alCrear() {
         if (creadaEn == null) creadaEn = LocalDateTime.now();
     }
+
+    // 1. Agrega estas dos variables debajo de tus otros atributos (id, fecha, etc.)
+    @Column(name = "metodo_pago")
+    private String metodoPago;
+
+    @Column(name = "numero_operacion")
+    private String numeroOperacion;
+
+    // 2. Agrega los Getters y Setters al final de la clase (antes de la última llave })
+    public String getMetodoPago() {
+        return metodoPago;
+    }
+
+    public void setMetodoPago(String metodoPago) {
+        this.metodoPago = metodoPago;
+    }
+
+    public String getNumeroOperacion() {
+        return numeroOperacion;
+    }
+
+    public void setNumeroOperacion(String numeroOperacion) {
+        this.numeroOperacion = numeroOperacion;
+    }
+
+
+
+
+    
+
+
+
+    
 }
