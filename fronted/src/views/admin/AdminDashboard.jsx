@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { api, aplicarEstadoReservaLocal } from '../../services/api';
+import EditReservationModal from '../../components/modals/EditReservationModal';
 import { 
   Bed, 
   CalendarCheck, 
@@ -27,6 +28,7 @@ export default function AdminDashboard({
   setRooms, 
   reservations = [], 
   setReservations,
+  acciones,
   searchTerm = '' 
 }) {
   const [selectedRoom, setSelectedRoom] = useState(null);
@@ -34,6 +36,7 @@ export default function AdminDashboard({
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
   const [selectedReservation, setSelectedReservation] = useState(null);
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
+  const [reservaEnEdicion, setReservaEnEdicion] = useState(null);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -69,11 +72,16 @@ export default function AdminDashboard({
 
   // Cancelar libera la habitación; la reserva queda en el historial como Cancelada
   const handleDeleteReservation = async (id) => {
+    const res = reservations.find(r => r.id === id);
+    if (!res) return;
+    if (!res.puedeCancelar) { alert(res.motivoNoCancelable || 'Esta reserva ya no se puede cancelar.'); return; }
     if (window.confirm("¿Seguro que deseas cancelar esta reserva?")) {
-      const res = reservations.find(r => r.id === id);
-      if (!res) return;
-      aplicarEstadoReservaLocal(setReservations, setRooms, res, 'Cancelada');
-      await api.updateEstadoReserva(id, 'Cancelada');
+      try {
+        // Primero el servidor decide (regla de las 3 horas); la pantalla muestra lo que él responde
+        await api.updateEstadoReserva(id, 'Cancelada');
+      } catch (e) {
+        alert(`No se pudo cancelar:\n${e.message}`);
+      }
       api.syncAll(setRooms, setReservations);
     }
   };
@@ -335,14 +343,16 @@ export default function AdminDashboard({
                           </button>
                           <button 
                             className="btn-action-icon" 
-                            title="Editar"
-                            onClick={() => handleViewReservation(res)}
+                            title={res.puedeEditar ? 'Editar' : (res.motivoNoEditable || 'No se puede editar')}
+                            style={res.puedeEditar ? undefined : { opacity: 0.35, cursor: 'not-allowed' }}
+                            onClick={() => res.puedeEditar ? setReservaEnEdicion(res) : alert(res.motivoNoEditable || 'Esta reserva ya no se puede editar.')}
                           >
                             <Edit2 size={17} />
                           </button>
                           <button 
                             className="btn-action-icon delete" 
-                            title="Eliminar"
+                            title={res.puedeCancelar ? 'Cancelar reserva' : (res.motivoNoCancelable || 'No se puede cancelar')}
+                            style={res.puedeCancelar ? undefined : { opacity: 0.35, cursor: 'not-allowed' }}
                             onClick={() => handleDeleteReservation(res.id)}
                           >
                             <Trash2 size={17} />
@@ -554,6 +564,14 @@ export default function AdminDashboard({
         isOpen={isGuestModalOpen}
         onClose={() => setIsGuestModalOpen(false)}
         reservation={selectedReservation}
+      />
+
+      <EditReservationModal
+        isOpen={!!reservaEnEdicion}
+        onClose={() => setReservaEnEdicion(null)}
+        reservation={reservaEnEdicion}
+        rooms={rooms}
+        onSave={acciones.editarReserva}
       />
     </div>
   );

@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import com.wimbledon.backend.services.ReglasReserva;
 
 @Entity
 @Table(name = "reservas")
@@ -15,6 +16,12 @@ import java.time.LocalTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+
+
+
+
+
+
 public class Reserva {
 
     @Id
@@ -73,5 +80,51 @@ public class Reserva {
     @PrePersist
     void alCrear() {
         if (creadaEn == null) creadaEn = LocalDateTime.now();
+    }
+
+    // 1. Agrega estas dos variables debajo de tus otros atributos (id, fecha, etc.)
+    @Column(name = "metodo_pago")
+    private String metodoPago;
+
+    @Column(name = "numero_operacion")
+    private String numeroOperacion;
+
+    // 2. Agrega los Getters y Setters al final de la clase (antes de la última llave })
+    public String getMetodoPago() {
+        return metodoPago;
+    }
+
+    public void setMetodoPago(String metodoPago) {
+        this.metodoPago = metodoPago;
+    }
+
+    public String getNumeroOperacion() {
+        return numeroOperacion;
+    }
+
+    public void setNumeroOperacion(String numeroOperacion) {
+        this.numeroOperacion = numeroOperacion;
+    }
+
+    // --- Campos calculados (solo salida JSON): el frontend los usa para activar/desactivar botones.
+    // La regla real la aplica el backend en ReservaService; esto solo la refleja con la hora de Lima actual.
+    public String getMotivoNoEditable() {
+        return ReglasReserva.motivoNoEditable(this, ReglasReserva.ahora());
+    }
+
+    public boolean isPuedeEditar() {
+        return getMotivoNoEditable() == null;
+    }
+
+    public String getMotivoNoCancelable() {
+        return ReglasReserva.motivoNoCancelable(this, ReglasReserva.ahora());
+    }
+
+    public boolean isPuedeCancelar() {
+        return getMotivoNoCancelable() == null;
+    }
+
+    public boolean isExcedida() {
+        return ReglasReserva.excedida(this, ReglasReserva.ahora());
     }
 }

@@ -4,46 +4,25 @@ import TopHeader from '../components/layout/TopHeader';
 import AdminDashboard from './admin/AdminDashboard';
 import ReceptionDashboard from './reception/ReceptionDashboard';
 import HousekeepingDashboard from './housekeeping/HousekeepingDashboard';
+import UsuariosManagement from './admin/UsuariosManagement';
 import { INITIAL_ROOMS, INITIAL_RESERVATIONS } from '../services/api';
 import { useEstadosEnVivo } from '../hooks/useEstadosEnVivo';
 
 export default function DashboardContainer({ 
   initialRole = 'ADMIN', 
+  user: sessionUser,
+  onLogout,
   onGoToLanding,
   rooms: propRooms,
   setRooms: propSetRooms,
   reservations: propReservations,
   setReservations: propSetReservations
 }) {
-  const [currentRole, setCurrentRole] = useState(initialRole);
+  // El rol viene de la sesión autenticada y no se puede cambiar desde la interfaz
+  const currentRole = initialRole;
   const [currentTab, setCurrentTab] = useState('inicio');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-
-  // Keep currentRole in sync if initialRole changes
-  useEffect(() => {
-    if (initialRole) {
-      setCurrentRole(initialRole);
-    }
-  }, [initialRole]);
-
-  // Sync with browser URL hash
-  useEffect(() => {
-    const hash = window.location.hash.toLowerCase().replace('#', '');
-    if (hash === 'admin') setCurrentRole('ADMIN');
-    else if (hash === 'recepcion' || hash === 'reception') setCurrentRole('RECEPCION');
-    else if (hash === 'limpieza' || hash === 'housekeeping') setCurrentRole('LIMPIEZA');
-  }, []);
-
-  // Update hash when role changes
-  const handleRoleChange = (newRole) => {
-    setCurrentRole(newRole);
-    setCurrentTab('inicio');
-    setSearchTerm('');
-    if (newRole === 'ADMIN') window.location.hash = '#admin';
-    else if (newRole === 'RECEPCION') window.location.hash = '#recepcion';
-    else if (newRole === 'LIMPIEZA') window.location.hash = '#limpieza';
-  };
 
   // Central state for Rooms & Reservations synced with API / mock
   const [internalRooms, setInternalRooms] = useState(INITIAL_ROOMS);
@@ -59,28 +38,13 @@ export default function DashboardContainer({
     onDatos: (hab, res) => { setRooms(hab); setReservations(res); }
   });
 
-  // User meta by role
-  const getUserProfile = () => {
-    if (currentRole === 'ADMIN') {
-      return {
-        nombre: 'Administrador',
-        email: 'admin@hotel.com',
-        rol: 'Administrador General'
-      };
-    }
-    if (currentRole === 'RECEPCION') {
-      return {
-        nombre: 'Ana Torres',
-        email: 'ana.torres@hotel.com',
-        rol: 'Recepción'
-      };
-    }
-    return {
-      nombre: 'Rosa Flores',
-      email: 'rosa.limpieza@hotel.com',
-      rol: 'Personal de Limpieza'
-    };
-  };
+  // Datos del usuario autenticado
+  const ROL_LABEL = { ADMIN: 'Administrador General', RECEPCION: 'Recepción', LIMPIEZA: 'Personal de Limpieza' };
+  const getUserProfile = () => ({
+    nombre: sessionUser?.nombre || 'Usuario',
+    email: sessionUser?.email || '',
+    rol: ROL_LABEL[currentRole]
+  });
 
   return (
     <div className="dashboard-layout">
@@ -89,7 +53,8 @@ export default function DashboardContainer({
         currentRole={currentRole}
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
-        onLogout={onGoToLanding}
+        onLogout={onLogout}
+        onGoToLanding={onGoToLanding}
         user={getUserProfile()}
       />
 
@@ -98,7 +63,6 @@ export default function DashboardContainer({
         {/* Top Header */}
         <TopHeader
           currentRole={currentRole}
-          onRoleChange={handleRoleChange}
           user={getUserProfile()}
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           onGoToLanding={onGoToLanding}
@@ -115,6 +79,7 @@ export default function DashboardContainer({
         <main className="dash-content">
           {currentRole === 'ADMIN' && (
             <AdminDashboard
+              acciones={acciones}
               currentTab={currentTab}
               setCurrentTab={setCurrentTab}
               rooms={rooms}
@@ -147,7 +112,9 @@ export default function DashboardContainer({
             />
           )}
 
-          {currentTab === 'configuracion' && (
+          {currentRole === 'ADMIN' && currentTab === 'usuarios' && <UsuariosManagement />}
+
+          {currentRole === 'ADMIN' && currentTab === 'configuracion' && (
             <div className="dash-card">
               <div className="dash-card-header">
                 <h3>Configuración del Sistema</h3>
