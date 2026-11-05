@@ -99,10 +99,7 @@ Frontend (`fronted/src/`)
 - **Supuesto: CONFIRMADA = ya pagó** (hay `metodoPago` y `numeroOperacion`). El código **no lo garantiza**:
   `POST /reservas/express` crea la reserva ya CONFIRMADA sin exigir pago. Si se quiere que el cierre de "no se
   presentó" sea fiable, hay que exigir el pago antes de confirmar.
-- **Pasarela de pago incompleta**: `fronted/app.js` (selector Yape/Plin) no se carga (`index.html` solo usa
-  `src/main.jsx`), faltan las imágenes `public/images/yape-qr.jpg` y `plin-qr.jpg`, el flujo React no envía
-  `metodoPago`/`numeroOperacion` y el backend no los valida. Yape/Plin no tienen API pública: lo realista es
-  PENDIENTE + N° de operación + confirmación manual de recepción, o una pasarela real (Culqi, Niubiz, Izipay).
+- **Forma de pago**: implementada como PENDIENTE + N° de operación + confirmación manual de recepción. Ver `docs/forma-de-pago.md`. Sigue pendiente: `POST /reservas/express` crea la reserva CONFIRMADA sin exigir pago, y no hay pasarela real de tarjeta (Culqi, Niubiz, Izipay).
 - **`DELETE /api/v1/reservas/{id}`** sigue permitiendo borrar cualquier reserva y se salta todas estas reglas.
 - El cobro de la extensión (`precioBloque/6` por hora) es una propuesta; confirmar con el hotel.
 - No hay cierre de caja ni reporte que distinga las FINALIZADAS por "no se presentó": solo se ve en `notasAdicionales`.

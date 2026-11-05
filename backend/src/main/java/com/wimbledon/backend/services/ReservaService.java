@@ -74,6 +74,7 @@ public class ReservaService {
         }
 
         validarSinSolapamiento(reserva);
+        validarPago(reserva);
 
         if (reserva.getCodigo() == null || reserva.getCodigo().isBlank()) {
             reserva.setCodigo("#R-" + (1000 + (int)(Math.random() * 9000)));
@@ -87,6 +88,25 @@ public class ReservaService {
         Reserva guardada = reservaRepository.save(reserva);
         sincronizarHabitacion(guardada);
         return guardada;
+    }
+
+    /**
+     * Valida y normaliza el método de pago (ver MetodosPago). Si viene un N° de operación digital,
+     * se rechaza que el mismo comprobante ya haya pagado otra reserva que no esté cancelada.
+     */
+    private void validarPago(Reserva reserva) {
+        String motivo = MetodosPago.motivoInvalido(reserva.getMetodoPago(), reserva.getNumeroOperacion());
+        if (motivo != null) throw new RuntimeException(motivo);
+
+        String metodo = MetodosPago.normalizarMetodo(reserva.getMetodoPago());
+        String operacion = MetodosPago.normalizarOperacion(reserva.getNumeroOperacion());
+        reserva.setMetodoPago(metodo);
+        reserva.setNumeroOperacion(operacion);
+
+        if (operacion != null && reservaRepository.existsByMetodoPagoAndNumeroOperacionAndEstadoNot(
+                metodo, operacion, EstadoReserva.CANCELADA)) {
+            throw new RuntimeException("Ese número de operación ya fue usado en otra reserva. Revisa tu comprobante.");
+        }
     }
 
     @Transactional
@@ -174,12 +194,17 @@ public class ReservaService {
         return guardada;
     }
 
-    /** Cada 30 s: las reservas PENDIENTE sin confirmar en 15 min se cancelan y liberan la habitación. */
+    /** Cada 30 s: las reservas PENDIENTE sin confirmar en 15 min se cancelan y liberan la habitación (salvo pagos digitales por verificar). */
     @Scheduled(fixedRate = 30_000)
     @Transactional
     public void cancelarPendientesVencidas() {
         LocalDateTime limite = LocalDateTime.now().minusMinutes(MINUTOS_PARA_CONFIRMAR);
         for (Reserva r : reservaRepository.findByEstadoAndCreadaEnBefore(EstadoReserva.PENDIENTE, limite)) {
+            // Ya pagó por Yape/Plin/transferencia y espera que recepción verifique: no se anula sola
+            // mientras su hora de entrada no haya llegado (después de eso sí se libera la habitación)
+            LocalDateTime entrada = ReglasReserva.inicio(r);
+            boolean pagoPorVerificar = r.getNumeroOperacion() != null && !r.getNumeroOperacion().isBlank();
+            if (pagoPorVerificar && entrada != null && entrada.isAfter(ReglasReserva.ahora())) continue;
             r.setEstado(EstadoReserva.CANCELADA);
             reservaRepository.save(r);
             sincronizarHabitacion(r);

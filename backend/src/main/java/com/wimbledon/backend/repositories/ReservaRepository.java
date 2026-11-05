@@ -37,6 +37,9 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
 
     List<Reserva> findByEstado(EstadoReserva estado);
 
+    // Un mismo comprobante (Yape/Plin/transferencia) no puede pagar dos reservas vigentes
+    boolean existsByMetodoPagoAndNumeroOperacionAndEstadoNot(String metodoPago, String numeroOperacion, EstadoReserva estado);
+
     // Reservas PENDIENTE creadas antes del límite (no confirmadas a tiempo)
     List<Reserva> findByEstadoAndCreadaEnBefore(EstadoReserva estado, LocalDateTime limite);
 }

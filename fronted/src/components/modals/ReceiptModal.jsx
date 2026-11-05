@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Printer, ArrowRight, CheckCircle2, ShieldCheck, QrCode } from 'lucide-react';
+import { getMetodoPago } from '../../data/pagos';
 
 export default function ReceiptModal({
   isOpen,
@@ -16,6 +17,9 @@ export default function ReceiptModal({
   const fechaEmision = new Date().toLocaleDateString('es-PE', {
     day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
   });
+
+  const metodo = getMetodoPago(reservation.metodoPago);
+  const pagoDigital = Boolean(metodo && metodo.digital);
 
   const handlePrint = () => {
     window.print();
@@ -204,6 +208,24 @@ export default function ReceiptModal({
               ))}
             </tbody>
           </table>
+
+          {/* Forma de pago */}
+          {metodo && (
+            <div style={{ backgroundColor: '#f8fafc', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #e2e8f0', fontSize: '13px' }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                FORMA DE PAGO
+              </span>
+              <div style={{ marginTop: '6px' }}>
+                <strong>{metodo.nombre}</strong>
+                {pagoDigital && reservation.numeroOperacion && <span> · N° de operación: <strong>{reservation.numeroOperacion}</strong></span>}
+              </div>
+              <div style={{ marginTop: '4px', fontSize: '12px', color: '#b45309' }}>
+                {pagoDigital
+                  ? 'Pago en verificación: recepción confirmará tu reserva al validar la operación.'
+                  : 'Pago pendiente: se abona en recepción al llegar.'}
+              </div>
+            </div>
+          )}
 
           {/* Totales y QR */}
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px', alignItems: 'center', borderTop: '1px solid #cbd5e1', paddingTop: '16px' }}>

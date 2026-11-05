@@ -79,6 +79,8 @@ CREATE TABLE `reservas` (
   `token_acceso_qr` VARCHAR(255) NOT NULL UNIQUE,
   `estado` VARCHAR(50) NOT NULL DEFAULT 'CONFIRMADA',
   `notas_adicionales` TEXT DEFAULT NULL,
+  `metodo_pago` VARCHAR(30) DEFAULT NULL, -- 'YAPE', 'PLIN', 'TRANSFERENCIA', 'EN_HOTEL'
+  `numero_operacion` VARCHAR(30) DEFAULT NULL, -- N° de operación de Yape/Plin/transferencia (6 a 12 dígitos)
   `fecha_creacion` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT `fk_reserva_habitacion` FOREIGN KEY (`habitacion_id`) REFERENCES `habitaciones` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

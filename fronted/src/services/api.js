@@ -78,6 +78,12 @@ function camposEdicion(item) {
   };
 }
 
+// dd/MM/yyyy -> yyyy-MM-dd (formato que acepta el backend); si ya viene en ISO o vacío, no se toca
+function aFechaISO(fecha) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(fecha || '');
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : fecha;
+}
+
 // Normalizer to safely transform backend DB models into UI models
 export function normalizeReservation(item, index) {
   if (!item) return null;
@@ -115,6 +121,7 @@ export function normalizeReservation(item, index) {
     telefono: item.telefonoWhatsApp || item.telefono || '+51 987 654 321',
     creadaEn: item.creadaEn || null,
     metodoPago: item.metodoPago || '',
+    numeroOperacion: item.numeroOperacion || '',
     tokenQr: item.tokenAccesoQr || ''
   };
 }
@@ -344,11 +351,14 @@ export const api = {
         documentoHuesped: reservaData.documento || reservaData.documentoHuesped || '70123456',
         emailHuesped: reservaData.email || reservaData.emailHuesped || 'cliente@wimbledon.com',
         telefonoWhatsApp: reservaData.telefono || reservaData.telefonoWhatsApp || '+51 900 000 000',
-        fechaCheckIn: reservaData.checkIn || reservaData.fechaCheckIn,
-        fechaCheckOut: reservaData.checkOut || reservaData.fechaCheckOut,
+        // El backend (LocalDate) espera yyyy-MM-dd; el formulario guarda dd/MM/yyyy
+        fechaCheckIn: aFechaISO(reservaData.checkIn || reservaData.fechaCheckIn),
+        fechaCheckOut: aFechaISO(reservaData.checkOut || reservaData.fechaCheckOut),
         totalPago: reservaData.total || reservaData.totalPago || 250.00,
         bloqueSeleccionado: reservaData.bloqueSeleccionado || 'NOCHE COMPLETA',
         notasAdicionales: reservaData.notasAdicionales || '',
+        metodoPago: reservaData.metodoPago || null,
+        numeroOperacion: reservaData.numeroOperacion || null,
         habitacion: {
           id: reservaData.habitacionId || 1
         }
@@ -387,6 +397,8 @@ export const api = {
       email: reservaData.email || 'cliente@wimbledon.com',
       telefono: reservaData.telefono || '+51 987 654 321',
       notasAdicionales: reservaData.notasAdicionales || '',
+      metodoPago: reservaData.metodoPago || '',
+      numeroOperacion: reservaData.numeroOperacion || '',
       detallesBoleta: reservaData.detallesBoleta || null
     };
   },
