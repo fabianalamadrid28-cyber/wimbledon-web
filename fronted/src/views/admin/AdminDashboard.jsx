@@ -34,7 +34,9 @@ export default function AdminDashboard({
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
-  const [selectedReservation, setSelectedReservation] = useState(null);
+  const [selectedReservationId, setSelectedReservationId] = useState(null);
+  const selectedReservation = (Array.isArray(reservations) ? reservations : []).find((r) => r.id === selectedReservationId) || null;
+  const setSelectedReservation = (res) => setSelectedReservationId(res ? res.id : null);
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
   const [reservaEnEdicion, setReservaEnEdicion] = useState(null);
 

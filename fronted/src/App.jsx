@@ -12,7 +12,14 @@ import {
   Utensils, 
   Gift, 
   Check, 
-  CheckCircle2 
+  CheckCircle2,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  LoaderCircle,
+  CircleAlert
 } from 'lucide-react';
 import { INITIAL_ROOMS, INITIAL_RESERVATIONS, api, setPermisoReservas } from './services/api';
 import useLiveSync from './services/useLiveSync';
@@ -220,6 +227,7 @@ function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   
   // Sincronización Central de Habitaciones y Reservas (Compartido entre Landing y Dashboards)
   const [rooms, setRooms] = useState(INITIAL_ROOMS);
@@ -858,37 +866,67 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
 
       {/* MODAL 4: INICIO DE SESIÓN (el rol lo determina el backend) */}
       {isLoginModalOpen && (
-        <div className="modal-backdrop" onClick={() => setIsLoginModalOpen(false)}>
-          <div className="modal-dialog" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
-            <form onSubmit={handleLogin}>
-              <div className="modal-header">
-                <div>
-                  <h3 style={{ margin: 0 }}>Portal de Empleados</h3>
-                  <span style={{ fontSize: '12px', color: '#64748b' }}>Ingresa con tu correo y contraseña</span>
+        <div className="login-overlay" onClick={() => setIsLoginModalOpen(false)}>
+          <div className="login-card" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="login-close" onClick={() => setIsLoginModalOpen(false)} aria-label="Cerrar">
+              <X size={18} />
+            </button>
+
+            <div className="login-brand">
+              <div>
+                <img src="/logo.svg" alt="Hotel Wimbledon" />
+                <h2>Hotel Wimbledon</h2>
+                <p>Portal interno del personal para gestionar reservas, habitaciones y operaciones del hotel.</p>
+                <div className="login-roles">
+                  <span>Administración</span>
+                  <span>Recepción</span>
+                  <span>Limpieza</span>
                 </div>
-                <button type="button" className="btn-action-icon" onClick={() => setIsLoginModalOpen(false)}>
-                  <X size={20} />
-                </button>
               </div>
-              <div className="modal-body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div className="form-group">
-                  <label>Correo electrónico</label>
-                  <input type="email" required autoFocus autoComplete="username" value={loginEmail}
+              <small>Acceso exclusivo para personal autorizado</small>
+            </div>
+
+            <form className="login-form-side" onSubmit={handleLogin}>
+              <h3>Bienvenido</h3>
+              <p className="login-sub">Ingresa con tu correo y contraseña</p>
+
+              <div className="login-field">
+                <label htmlFor="login-email">Correo electrónico</label>
+                <div className="login-input-wrap">
+                  <Mail size={18} className="login-ico" />
+                  <input id="login-email" type="email" required autoFocus autoComplete="username"
+                    placeholder="usuario@hotel.com" value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)} />
                 </div>
-                <div className="form-group">
-                  <label>Contraseña</label>
-                  <input type="password" required autoComplete="current-password" value={loginPassword}
+              </div>
+
+              <div className="login-field">
+                <label htmlFor="login-password">Contraseña</label>
+                <div className="login-input-wrap">
+                  <Lock size={18} className="login-ico" />
+                  <input id="login-password" type={showLoginPassword ? 'text' : 'password'} required
+                    autoComplete="current-password" placeholder="••••••••" value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)} />
+                  <button type="button" className="login-eye" tabIndex={-1}
+                    onClick={() => setShowLoginPassword((v) => !v)}
+                    aria-label={showLoginPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>
+                    {showLoginPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
-                {loginError && <p style={{ color: '#dc2626', fontSize: '13px', margin: 0 }}>{loginError}</p>}
               </div>
-              <div className="modal-footer">
-                <button type="button" className="btn-secondary" onClick={() => setIsLoginModalOpen(false)}>Cancelar</button>
-                <button type="submit" className="btn-primary" disabled={loginLoading}>
-                  {loginLoading ? 'Ingresando...' : 'Ingresar'}
-                </button>
-              </div>
+
+              {loginError && (
+                <div className="login-error" role="alert">
+                  <CircleAlert size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>{loginError}</span>
+                </div>
+              )}
+
+              <button type="submit" className="login-submit" disabled={loginLoading}>
+                {loginLoading ? (<><LoaderCircle size={18} className="login-spin" /> Ingresando...</>) : 'Iniciar sesión'}
+              </button>
+
+              <p className="login-foot"><ShieldCheck size={14} /> Conexión protegida · tu rol se asigna automáticamente</p>
             </form>
           </div>
         </div>

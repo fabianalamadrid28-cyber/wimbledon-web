@@ -37,7 +37,11 @@ export default function ReceptionDashboard({
 }) {
   const [activeTab, setActiveTab] = useState('reservas-dia');
   const safeReservations = Array.isArray(reservations) ? reservations : [];
-  const [selectedGuestReservation, setSelectedGuestReservation] = useState(safeReservations[0] || null);
+  // Se guarda solo el id: así la ficha siempre muestra los datos actuales de la lista
+  const [selectedGuestId, setSelectedGuestId] = useState(null);
+  const selectedGuestReservation =
+    safeReservations.find((r) => r.id === selectedGuestId) || safeReservations[0] || null;
+  const setSelectedGuestReservation = (res) => setSelectedGuestId(res ? res.id : null);
   const [isGuestDetailOpen, setIsGuestDetailOpen] = useState(false);
   const [reservaEnEdicion, setReservaEnEdicion] = useState(null);
   const [reservaAExtender, setReservaAExtender] = useState(null);
@@ -494,7 +498,11 @@ export default function ReceptionDashboard({
                 </button>
                 <button 
                   className="btn-guest-action purple"
-                  onClick={() => window.print()}
+                  onClick={() => {
+                    // Se abre la ficha y se imprime solo ella (la página completa salía en blanco)
+                    setIsGuestDetailOpen(true);
+                    setTimeout(() => window.print(), 400);
+                  }}
                 >
                   <Printer size={15} /> Imprimir ficha
                 </button>

@@ -113,7 +113,9 @@ export function normalizeReservation(item, index) {
     total: item.totalPago != null ? parseFloat(item.totalPago) : (item.total || 480.00),
     email: item.emailHuesped || item.email || 'huesped@wimbledon.com',
     telefono: item.telefonoWhatsApp || item.telefono || '+51 987 654 321',
-    creadaEn: item.creadaEn || null
+    creadaEn: item.creadaEn || null,
+    metodoPago: item.metodoPago || '',
+    tokenQr: item.tokenAccesoQr || ''
   };
 }
 
