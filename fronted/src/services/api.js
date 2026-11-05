@@ -389,5 +389,29 @@ export const api = {
       notasAdicionales: reservaData.notasAdicionales || '',
       detallesBoleta: reservaData.detallesBoleta || null
     };
+  },
+
+  // Soporte: reportar un inconveniente en una habitación (cliente o limpieza)
+  async crearReporteSoporte(data) {
+    const res = await apiFetch(`${API_BASE_URL}/soporte`, {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify(data)
+    });
+    return jsonOrThrow(res, 'No se pudo crear el reporte de soporte.');
+  },
+
+  async listarReportesSoporte() {
+    const res = await apiFetch(`${API_BASE_URL}/soporte`);
+    return jsonOrThrow(res, 'No se pudieron cargar los reportes de soporte.');
+  },
+
+  async actualizarEstadoReporteSoporte(id, estado) {
+    const res = await apiFetch(`${API_BASE_URL}/soporte/${id}/estado`, {
+      method: 'PATCH',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ estado })
+    });
+    return jsonOrThrow(res, 'No se pudo actualizar el estado del reporte.');
   }
 };

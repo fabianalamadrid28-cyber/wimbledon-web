@@ -40,7 +40,7 @@ export default function Sidebar({ currentRole, currentTab, setCurrentTab, onLogo
           { id: 'inicio', label: 'Tablero de Aseo', icon: Sparkles },
           { id: 'habitaciones', label: 'Habitaciones', icon: DoorClosed },
           { id: 'checklists', label: 'Checklists de Aseo', icon: CheckSquare },
-          { id: 'mantenimiento', label: 'Reportes de Averías', icon: Wrench }
+          { id: 'mantenimiento', label: 'Soporte de Habitaciones', icon: Wrench }
         ];
       default:
         return [];

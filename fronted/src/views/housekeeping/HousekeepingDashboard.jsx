@@ -14,18 +14,20 @@ import {
 } from 'lucide-react';
 import { api } from '../../services/api';
 import HousekeepingChecklistModal from '../../components/modals/HousekeepingChecklistModal';
-import MaintenanceReportModal from '../../components/modals/MaintenanceReportModal';
+import SoportePanel from './SoportePanel';
 
 export default function HousekeepingDashboard({
   rooms,
   acciones,
-  searchTerm
+  searchTerm,
+  currentTab,
+  setCurrentTab
 }) {
   const [floorFilter, setFloorFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [isChecklistModalOpen, setIsChecklistModalOpen] = useState(false);
-  const [isMaintenanceModalOpen, setIsMaintenanceModalOpen] = useState(false);
+  const [reportRoom, setReportRoom] = useState('');
 
   // Transition: Iniciar Limpieza (moves to EN_PROCESO)
   const handleStartCleaning = (roomId) => acciones.cambiarEstadoHabitacion(roomId, 'EN_PROCESO');
@@ -41,15 +43,10 @@ export default function HousekeepingDashboard({
     await acciones.cambiarEstadoHabitacion(roomId, 'LISTA');
   };
 
-  // Open maintenance report
+  // Open support / inconvenience report for the selected room
   const handleOpenMaintenance = (room) => {
-    setSelectedRoom(room);
-    setIsMaintenanceModalOpen(true);
-  };
-
-  // Submit maintenance
-  const handleSubmitMaintenance = async (roomId, reportData) => {
-    await acciones.cambiarEstadoHabitacion(roomId, 'MANTENIMIENTO');
+    setReportRoom(room.numero);
+    if (setCurrentTab) setCurrentTab('mantenimiento');
   };
 
   // Reset to pending cleaning
@@ -70,6 +67,10 @@ export default function HousekeepingDashboard({
   const inProgressCleaning = rooms.filter(r => r.estado === 'EN_PROCESO').length;
   const readyRooms = rooms.filter(r => r.estado === 'DISPONIBLE' || r.estado === 'LISTA').length;
   const maintenanceRooms = rooms.filter(r => r.estado === 'MANTENIMIENTO').length;
+
+  if (currentTab === 'mantenimiento') {
+    return <SoportePanel rooms={rooms} initialRoom={reportRoom} />;
+  }
 
   return (
     <div>
@@ -293,13 +294,6 @@ export default function HousekeepingDashboard({
         onClose={() => setIsChecklistModalOpen(false)}
         room={selectedRoom}
         onComplete={handleFinishCleaning}
-      />
-
-      <MaintenanceReportModal
-        isOpen={isMaintenanceModalOpen}
-        onClose={() => setIsMaintenanceModalOpen(false)}
-        room={selectedRoom}
-        onSubmit={handleSubmitMaintenance}
       />
     </div>
   );

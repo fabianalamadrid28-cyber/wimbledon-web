@@ -29,8 +29,8 @@ public class DataInitializer {
             UsuarioRepository usuarioRepository,
             PasswordEncoder passwordEncoder) {
         return args -> {
-            // Inicializar usuarios base
-            if (usuarioRepository.count() == 0) {
+            // Inicializar usuarios base (solo los que faltan; no modifica cuentas ya existentes)
+            if (usuarioRepository.findByUsername("admin@hotel.com").isEmpty()) {
                 usuarioRepository.save(Usuario.builder()
                         .username("admin@hotel.com")
                         .password(passwordEncoder.encode("admin123"))
@@ -39,7 +39,8 @@ public class DataInitializer {
                         .rol(Rol.ADMINISTRADOR)
                         .activo(true)
                         .build());
-
+            }
+            if (usuarioRepository.findByUsername("ana.torres@hotel.com").isEmpty()) {
                 usuarioRepository.save(Usuario.builder()
                         .username("ana.torres@hotel.com")
                         .password(passwordEncoder.encode("recepcion123"))
@@ -48,7 +49,8 @@ public class DataInitializer {
                         .rol(Rol.RECEPCIONISTA)
                         .activo(true)
                         .build());
-
+            }
+            if (usuarioRepository.findByUsername("rosa.limpieza@hotel.com").isEmpty()) {
                 usuarioRepository.save(Usuario.builder()
                         .username("rosa.limpieza@hotel.com")
                         .password(passwordEncoder.encode("limpieza123"))
