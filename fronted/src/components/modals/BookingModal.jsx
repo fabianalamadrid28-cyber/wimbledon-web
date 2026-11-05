@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, User, Phone, Mail, FileText, Sparkles, Check, Gift, Utensils } from 'lucide-react';
+import { X, Calendar, Clock, User, Phone, Mail, FileText, Sparkles, Check, Gift, Utensils, CreditCard } from 'lucide-react';
+import PaymentMethodSelector from './PaymentMethodSelector';
+import { getMetodoPago, REGEX_NUMERO_OPERACION } from '../../data/pagos';
 
 export const FESTIVIDAD_PACKAGES = [
   { id: 'sanvalentin', nombre: 'San Valentín Inolvidable', precio: 299.00, desc: 'Pétalos, espumante Chandon, fresas con chocolate y late check-out.' },
@@ -41,7 +43,18 @@ export default function BookingModal({
   const [selectedPackageId, setSelectedPackageId] = useState('');
   const [selectedCartaPromos, setSelectedCartaPromos] = useState([]);
   const [notasAdicionales, setNotasAdicionales] = useState('');
+  const [metodoPago, setMetodoPago] = useState('');
+  const [numeroOperacion, setNumeroOperacion] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Al abrir el modal, el pago empieza vacío (efecto aparte para que no se borre si se refrescan las habitaciones)
+  useEffect(() => {
+    if (isOpen) {
+      setMetodoPago('');
+      setNumeroOperacion('');
+      setErrorMsg('');
+    }
+  }, [isOpen]);
 
   // Sincronizar estado inicial al abrir
   useEffect(() => {
@@ -135,6 +148,17 @@ export default function BookingModal({
       return;
     }
 
+    const metodo = getMetodoPago(metodoPago);
+    if (!metodo) {
+      setErrorMsg('Selecciona una forma de pago.');
+      return;
+    }
+    if (metodo.digital && !REGEX_NUMERO_OPERACION.test(numeroOperacion.trim())) {
+      setErrorMsg(`Ingresa el número de operación de tu pago con ${metodo.nombre} (entre 6 y 12 dígitos).`);
+      return;
+    }
+    setErrorMsg('');
+
     const payload = {
       huesped: nombreHuesped.trim(),
       documento: documentoHuesped.trim(),
@@ -150,7 +174,9 @@ export default function BookingModal({
       paqueteFestividad: activePackage || null,
       itemsCarta: selectedCartaPromos,
       total: totalEstimado,
-      notasAdicionales: notasAdicionales.trim()
+      notasAdicionales: notasAdicionales.trim(),
+      metodoPago: metodo.id,
+      numeroOperacion: metodo.digital ? numeroOperacion.trim() : ''
     };
 
     onConfirmBooking(payload);
@@ -405,6 +431,20 @@ export default function BookingModal({
                 );
               })}
             </div>
+          </div>
+
+          {/* Sección 5: Forma de pago */}
+          <div style={{ marginBottom: '24px' }}>
+            <h4 style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#D4AF37', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <CreditCard size={15} /> 5. Forma de Pago *
+            </h4>
+            <PaymentMethodSelector
+              metodoPago={metodoPago}
+              numeroOperacion={numeroOperacion}
+              onChangeMetodo={(id) => { setMetodoPago(id); setNumeroOperacion(''); setErrorMsg(''); }}
+              onChangeOperacion={setNumeroOperacion}
+              total={totalEstimado}
+            />
           </div>
 
           {/* Notas Adicionales */}

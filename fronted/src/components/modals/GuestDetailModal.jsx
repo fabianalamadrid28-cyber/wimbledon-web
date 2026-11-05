@@ -76,6 +76,7 @@ export default function GuestDetailModal({ isOpen, onClose, reservation }) {
             <Campo icono={Calendar} etiqueta="Check-out" valor={fmtFecha(r.fechaCheckOutISO) || fmtFecha(r.checkOutDisplay)} />
             <Campo icono={Clock} etiqueta="Bloque / horario" valor={[r.bloque, horario].filter(Boolean).join(' · ') || null} />
             <Campo icono={CreditCard} etiqueta="Método de pago" valor={r.metodoPago} />
+            <Campo icono={CreditCard} etiqueta="N° de operación (verificar en la app)" valor={r.numeroOperacion} />
             <Campo icono={CreditCard} etiqueta="Total a pagar" valor={total} destacado color="#16a34a" />
             <Campo icono={Calendar} etiqueta="Reserva creada" valor={fmtFecha(r.creadaEn)} />
           </div>

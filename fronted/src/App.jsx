@@ -410,7 +410,9 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
       itemsCarta: formData.itemsCarta,
       tarifaBase: formData.tarifaBase,
       bloque: formData.bloque,
-      documento: formData.documento
+      documento: formData.documento,
+      metodoPago: formData.metodoPago,
+      numeroOperacion: formData.numeroOperacion
     });
     setIsReceiptModalOpen(true);
   };
