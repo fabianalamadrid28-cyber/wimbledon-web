@@ -56,9 +56,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/login", "/api/v1/auth/logout").permitAll()
                 .requestMatchers("/api/v1/auth/me").authenticated()
 
-                // Parte pública de la web: ver habitaciones y reservar en línea
+                // Parte pública de la web: ver habitaciones, reservar en línea y reportar soporte
                 .requestMatchers(HttpMethod.GET, "/api/v1/habitaciones", "/api/v1/habitaciones/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/reservas").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/v1/soporte").permitAll()
+                .requestMatchers("/api/v1/soporte", "/api/v1/soporte/**").hasAnyRole(ADMIN, SUPER, RECEPCION, LIMPIEZA)
 
                 // Gestión de cuentas: solo ADMIN
                 .requestMatchers("/api/v1/usuarios", "/api/v1/usuarios/**").hasAnyRole(ADMIN, SUPER)

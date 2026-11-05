@@ -19,7 +19,8 @@ import {
   EyeOff,
   ShieldCheck,
   LoaderCircle,
-  CircleAlert
+  CircleAlert,
+  Wrench
 } from 'lucide-react';
 import { INITIAL_ROOMS, INITIAL_RESERVATIONS, api, setPermisoReservas } from './services/api';
 import useLiveSync from './services/useLiveSync';
@@ -28,6 +29,7 @@ import ReceiptModal from './components/modals/ReceiptModal';
 import MenuDetailModal from './components/modals/MenuDetailModal';
 import EfectosNavidad from './components/common/EfectosNavidad';
 import RoomRatesPanel from './components/RoomRatesPanel';
+import SoporteForm from './components/SoporteForm';
 import HABITACIONES_REALES from './data/habitaciones.json';
 
 /* ---------- DATOS COMPLETOS DE LA CARTA Y PROMOCIONES ---------- */
@@ -454,6 +456,7 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
           <a href="#ofertas" className="nav-item">Ofertas</a>
           <a href="#servicios" className="nav-item">Servicios</a>
           <a href="#ubicacion" className="nav-item">Ubicación</a>
+          <a href="#soporte" className="nav-item">Soporte</a>
           <a href="#faq" className="nav-item">Preguntas</a>
         </nav>
         <button 
@@ -739,6 +742,29 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
         </div>
       </section>
 
+      {/* SOPORTE PARA HABITACIONES */}
+      <section className="support-section" id="soporte">
+        <div className="max-container support-layout">
+          <div className="support-copy">
+            <span className="section-tagline">SOS 24 HORAS</span>
+            <h2 className="section-title">¿Hay algún inconveniente en tu habitación?</h2>
+            <p>Dínos qué ocurre y atención al huésped o mantenimiento dejará lista tu suite sin salir de la habitación.</p>
+            <ul className="support-promises">
+              <li>Reporte directo con tu número de habitación</li>
+              <li>Respuesta del equipo dentro de la siguiente media hora</li>
+              <li>Confirmación por el contacto que indiques</li>
+            </ul>
+            <div className="support-emergency">
+              <strong><Wrench size={16} /> ¿Es urgente o hay riesgo?</strong>
+              <a href="tel:+51990123456">Llama o escribe al +51 990 123 456</a>
+            </div>
+          </div>
+          <div className="support-card">
+            <SoporteForm origen="CLIENTE" rooms={rooms} />
+          </div>
+        </div>
+      </section>
+
       {/* UBICACIÓN */}
       <section className="location-section" id="ubicacion">
         <div className="location-grid">
@@ -811,6 +837,7 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
             <a href="#habitaciones">Habitaciones</a>
             <a href="#carta">Carta</a>
             <a href="#ofertas">Ofertas</a>
+            <a href="#soporte">Soporte</a>
             <a href="#ubicacion">Ubicación</a>
             <a href="#faq">Preguntas</a>
             <a href="#">Términos y condiciones</a>

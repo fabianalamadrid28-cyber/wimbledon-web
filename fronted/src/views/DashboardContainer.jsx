@@ -109,6 +109,8 @@ export default function DashboardContainer({
               rooms={rooms}
               setRooms={setRooms}
               searchTerm={searchTerm}
+              currentTab={currentTab}
+              setCurrentTab={setCurrentTab}
             />
           )}
 
