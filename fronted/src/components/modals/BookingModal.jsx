@@ -57,7 +57,8 @@ export default function BookingModal({
     }
   }, [isOpen]);
 
-  // Sincronizar estado inicial al abrir
+  // Sincronizar estado inicial SOLO al abrir. No debe depender de `rooms`: esa lista se refresca
+  // cada 10 s desde el backend y volver a ejecutar esto borraba el paquete y las promociones elegidas.
   useEffect(() => {
     if (isOpen) {
       const today = new Date();
@@ -105,7 +106,8 @@ export default function BookingModal({
         setSelectedCartaPromos([]);
       }
     }
-  }, [isOpen, initialRoom, initialPackage, initialRate, initialDate, rooms]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -167,16 +169,24 @@ export default function BookingModal({
   const packagePrice = activePackage ? activePackage.precio : 0;
 
   // Costo adicionales de carta
-  const cartaTotal = selectedCartaPromos.reduce((sum, item) => sum + (item.precio || 0), 0);
+  const cartaTotal = selectedCartaPromos.reduce((sum, item) => sum + (Number(item.precio) || 0), 0);
+
+  // Un adicional elegido desde la carta puede traer otro id que el de esta lista: se compara también por nombre
+  const esMismaPromo = (a, b) => a.id === b.id || a.nombre === b.nombre;
+  // Lo elegido en la carta que no está en la lista fija también se muestra, para poder verlo y quitarlo
+  const promosVisibles = [
+    ...CARTA_PROMOTIONS,
+    ...selectedCartaPromos.filter(sel => !CARTA_PROMOTIONS.some(p => esMismaPromo(p, sel)))
+  ];
 
   // Total acumulado
   const totalEstimado = basePrice + packagePrice + cartaTotal;
 
   const togglePromo = (promo) => {
     setSelectedCartaPromos(prev => {
-      const exists = prev.some(p => p.id === promo.id);
+      const exists = prev.some(p => esMismaPromo(p, promo));
       if (exists) {
-        return prev.filter(p => p.id !== promo.id);
+        return prev.filter(p => !esMismaPromo(p, promo));
       } else {
         return [...prev, promo];
       }
@@ -555,8 +565,8 @@ export default function BookingModal({
               <Utensils size={15} /> 4. Carta del Menú y Promociones Especiales (Opcional)
             </h4>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '10px' }}>
-              {CARTA_PROMOTIONS.map(promo => {
-                const isChecked = selectedCartaPromos.some(p => p.id === promo.id || p.nombre === promo.nombre);
+              {promosVisibles.map(promo => {
+                const isChecked = selectedCartaPromos.some(p => esMismaPromo(p, promo));
                 return (
                   <div
                     key={promo.id}
@@ -575,7 +585,7 @@ export default function BookingModal({
                   >
                     <div>
                       <div style={{ fontSize: '12px', fontWeight: 600, color: '#ffffff' }}>{promo.nombre}</div>
-                      <div style={{ fontSize: '11px', color: '#10b981', fontWeight: 'bold', marginTop: '2px' }}>+S/ {promo.precio.toFixed(2)}</div>
+                      <div style={{ fontSize: '11px', color: '#10b981', fontWeight: 'bold', marginTop: '2px' }}>+S/ {(Number(promo.precio) || 0).toFixed(2)}</div>
                     </div>
                     <div style={{ 
                       width: '20px', 

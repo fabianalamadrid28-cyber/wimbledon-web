@@ -37,6 +37,15 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
 
     List<Reserva> findByEstado(EstadoReserva estado);
 
+    // Soporte: ¿ese documento es el huésped de una reserva vigente en esa habitación?
+    @Query("SELECT COUNT(r) > 0 FROM Reserva r WHERE r.habitacion.numero = :numero " +
+           "AND UPPER(TRIM(r.documentoHuesped)) = :documento AND r.estado IN :estados")
+    boolean existsHuespedEnHabitacion(
+            @Param("numero") String numero,
+            @Param("documento") String documento,
+            @Param("estados") List<EstadoReserva> estados
+    );
+
     // Un mismo comprobante (Yape/Plin/transferencia) no puede pagar dos reservas vigentes
     boolean existsByMetodoPagoAndNumeroOperacionAndEstadoNot(String metodoPago, String numeroOperacion, EstadoReserva estado);
 

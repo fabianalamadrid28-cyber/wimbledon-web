@@ -3,10 +3,12 @@ package com.wimbledon.backend.services;
 import com.wimbledon.backend.dto.SoporteReporteRequest;
 import com.wimbledon.backend.dto.SoporteReporteResponse;
 import com.wimbledon.backend.entities.ReporteSoporte;
+import com.wimbledon.backend.enums.EstadoReserva;
 import com.wimbledon.backend.enums.EstadoSoporte;
 import com.wimbledon.backend.enums.OrigenSoporte;
 import com.wimbledon.backend.enums.PrioridadSoporte;
 import com.wimbledon.backend.repositories.ReporteSoporteRepository;
+import com.wimbledon.backend.repositories.ReservaRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -18,7 +20,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SoporteService {
 
+    // Un huésped puede reportar si su reserva está pagada (CONFIRMADA) o ya ingresó (CHECKIN)
+    private static final List<EstadoReserva> ESTADOS_HUESPED =
+            List.of(EstadoReserva.CONFIRMADA, EstadoReserva.CHECKIN);
+
     private final ReporteSoporteRepository repository;
+    private final ReservaRepository reservaRepository;
 
     public List<SoporteReporteResponse> listar() {
         return repository.findAllByOrderByCreadoEnDesc()
@@ -28,7 +35,7 @@ public class SoporteService {
     }
 
     @Transactional
-    public SoporteReporteResponse crear(SoporteReporteRequest request) {
+    public SoporteReporteResponse crear(SoporteReporteRequest request, boolean esPersonal) {
         if (request == null) {
             throw new IllegalArgumentException("Faltan los datos del reporte.");
         }
@@ -40,8 +47,23 @@ public class SoporteService {
         String origen = requerido(request.origen(), 20, "origen");
         String prioridad = requerido(request.prioridad(), 10, "prioridad");
 
+        OrigenSoporte origenReporte = parseEnum(OrigenSoporte.class, origen, "origen");
+
+        // Sin sesión de empleado solo reporta un huésped registrado: su documento debe coincidir
+        // con una reserva vigente de esa habitación. El origen LIMPIEZA es exclusivo del personal.
+        if (!esPersonal) {
+            if (origenReporte != OrigenSoporte.CLIENTE) {
+                throw new NoAutorizadoException("Inicia sesión como personal para registrar este reporte.");
+            }
+            String documento = requerido(request.documento(), 20, "documento").toUpperCase(Locale.ROOT);
+            if (!reservaRepository.existsHuespedEnHabitacion(habitacion, documento, ESTADOS_HUESPED)) {
+                throw new NoAutorizadoException("No encontramos una reserva vigente en la habitación " + habitacion
+                        + " con ese documento. Solo los huéspedes registrados pueden reportar a soporte.");
+            }
+        }
+
         ReporteSoporte entity = ReporteSoporte.builder()
-                .origen(parseEnum(OrigenSoporte.class, origen, "origen"))
+                .origen(origenReporte)
                 .habitacion(habitacion)
                 .nombreContacto(nombreContacto)
                 .contacto(contacto)
@@ -99,6 +121,13 @@ public class SoporteService {
             return Enum.valueOf(type, value.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("Valor invalido para " + field + ": " + value + ".");
+        }
+    }
+
+    /** Quien reporta no es personal con sesión ni un huésped con reserva vigente en esa habitación. */
+    public static class NoAutorizadoException extends RuntimeException {
+        public NoAutorizadoException(String mensaje) {
+            super(mensaje);
         }
     }
 

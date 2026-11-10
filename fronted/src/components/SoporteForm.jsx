@@ -38,6 +38,7 @@ export default function SoporteForm({
   const [prioridad, setPrioridad] = useState('MEDIA');
   const [nombreContacto, setNombreContacto] = useState(isCliente ? '' : 'Personal de Limpieza');
   const [contacto, setContacto] = useState('');
+  const [documento, setDocumento] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
@@ -52,13 +53,15 @@ export default function SoporteForm({
     categoria &&
     prioridad &&
     descripcion.trim().length >= 3 &&
-    (!isCliente || contacto.trim().length >= 5);
+    (!isCliente || (contacto.trim().length >= 5 && documento.trim().length >= 6));
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     if (!isValid) {
-      setError('Completa habitación, categoría, prioridad, descripción y contacto.');
+      setError(isCliente
+        ? 'Completa habitación, documento de tu reserva, contacto y descripción.'
+        : 'Completa habitación, categoría, prioridad y descripción.');
       return;
     }
     setSending(true);
@@ -66,6 +69,7 @@ export default function SoporteForm({
       const payload = {
         origen,
         habitacion: habitacion.trim(),
+        documento: isCliente ? documento.trim() : undefined,
         nombreContacto: nombreContacto.trim() || (isCliente ? 'Cliente' : 'Personal de Limpieza'),
         contacto: contacto.trim(),
         categoria,
@@ -107,7 +111,7 @@ export default function SoporteForm({
         <div>
           <h4>{isCliente ? 'Reporta un inconveniente' : 'Reportar desde limpieza'}</h4>
           <p>{isCliente
-            ? 'Dínos qué ocurre en tu habitación y lo atendemos de inmediato.'
+            ? 'Dinos qué ocurre en tu habitación. Verificamos tu reserva con el documento con el que reservaste.'
             : 'Registra la avería detectada en el aseo o en la inspección.'}</p>
         </div>
       </div>
@@ -156,6 +160,22 @@ export default function SoporteForm({
           />
         </div>
       </div>
+
+      {isCliente && (
+        <div className="form-group">
+          <label htmlFor={`documento-${origen}`}>DNI / CE / Pasaporte de la reserva (obligatorio)</label>
+          <input
+            id={`documento-${origen}`}
+            className="form-control"
+            required
+            minLength={6}
+            maxLength={20}
+            placeholder="El mismo documento con el que reservaste"
+            value={documento}
+            onChange={(e) => setDocumento(e.target.value)}
+          />
+        </div>
+      )}
 
       <div className="form-group">
         <label htmlFor={`contacto-${origen}`}>Contacto{isCliente ? ' (obligatorio)' : ''}</label>
