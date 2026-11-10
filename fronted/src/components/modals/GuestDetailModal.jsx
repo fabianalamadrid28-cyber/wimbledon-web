@@ -14,6 +14,7 @@ const ESTADO_COLOR = {
   Confirmada: ['#dcfce7', '#15803d'],
   Pendiente: ['#fef3c7', '#b45309'],
   'Check-in': ['#dbeafe', '#1d4ed8'],
+  'En Habitación': ['#dcfce7', '#15803d'],
   Finalizada: ['#e2e8f0', '#475569'],
   Cancelada: ['#fee2e2', '#b91c1c']
 };

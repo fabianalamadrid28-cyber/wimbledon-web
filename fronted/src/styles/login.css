@@ -94,8 +94,79 @@
   .login-form-side { padding: 28px 24px 30px; }
 }
 
-/* Impresión de la ficha del huésped: sin recortes por scroll del modal */
+/* Impresión de comprobantes y fichas optimizada a una o dos páginas sin hojas en blanco */
 @media print {
-  .print-area { max-height: none !important; overflow: visible !important; }
-  .print-area * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Ocultar elementos que no deben imprimirse */
+  .no-print,
+  .navbar,
+  .hero-viewport,
+  .booking-bar-wrapper,
+  .gallery-section,
+  .welcome-section,
+  .about-section,
+  .rooms-custom-section,
+  .menu-section,
+  .offers-section,
+  .services-section,
+  .location-section,
+  .faq-section,
+  .footer,
+  .dash-sidebar,
+  .dash-topbar,
+  .dash-page-header,
+  .kpi-grid,
+  .dash-filters-bar,
+  .dash-tabs-nav,
+  .dash-pagination,
+  button {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  .modal-backdrop {
+    position: static !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    display: block !important;
+    box-shadow: none !important;
+  }
+
+  .print-area {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    overflow: visible !important;
+    max-height: none !important;
+    border-radius: 6px !important;
+  }
+
+  .print-area * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-shadow: none !important;
+  }
 }

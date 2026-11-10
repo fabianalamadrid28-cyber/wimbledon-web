@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, User, Phone, Mail, FileText, Sparkles, Check, Gift, Utensils, CreditCard } from 'lucide-react';
+import { X, Calendar, Clock, User, Phone, Mail, FileText, Sparkles, Check, Gift, Utensils, CreditCard, AlertTriangle, Layers, DoorClosed } from 'lucide-react';
 import PaymentMethodSelector from './PaymentMethodSelector';
 import { getMetodoPago, REGEX_NUMERO_OPERACION } from '../../data/pagos';
+import { PISOS_INFO, getTematicasPorPiso, asignarHabitacionAutomatica } from '../../services/api';
 
 export const FESTIVIDAD_PACKAGES = [
   { id: 'sanvalentin', nombre: 'San Valentín Inolvidable', precio: 299.00, desc: 'Pétalos, espumante Chandon, fresas con chocolate y late check-out.' },
@@ -32,14 +33,14 @@ export default function BookingModal({
   initialAddons = [],
   onConfirmBooking
 }) {
-  const [selectedRoomId, setSelectedRoomId] = useState('');
+  const [selectedPiso, setSelectedPiso] = useState(1);
+  const [selectedTema, setSelectedTema] = useState('');
   const [selectedBloque, setSelectedBloque] = useState('PERNOCTE');
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
   const [nombreHuesped, setNombreHuesped] = useState('');
   const [documentoHuesped, setDocumentoHuesped] = useState('');
   const [telefonoWhatsApp, setTelefonoWhatsApp] = useState('');
-  const [emailHuesped, setEmailHuesped] = useState('');
   const [selectedPackageId, setSelectedPackageId] = useState('');
   const [selectedCartaPromos, setSelectedCartaPromos] = useState([]);
   const [notasAdicionales, setNotasAdicionales] = useState('');
@@ -47,7 +48,7 @@ export default function BookingModal({
   const [numeroOperacion, setNumeroOperacion] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Al abrir el modal, el pago empieza vacío (efecto aparte para que no se borre si se refrescan las habitaciones)
+  // Al abrir el modal, el pago empieza vacío
   useEffect(() => {
     if (isOpen) {
       setMetodoPago('');
@@ -68,11 +69,23 @@ export default function BookingModal({
       setCheckIn(initialDate || formatDateInput(today));
       setCheckOut(formatDateInput(tomorrow));
 
+      const initialPiso = initialRoom ? (initialRoom.piso || 1) : 1;
+      setSelectedPiso(initialPiso);
+
+      const tematicas = getTematicasPorPiso(initialPiso, rooms);
+      let temaInit = '';
       if (initialRoom) {
-        setSelectedRoomId(String(initialRoom.id || initialRoom.numero));
-      } else if (rooms.length > 0) {
-        setSelectedRoomId(String(rooms[0].id || rooms[0].numero));
+        const buscado = String(initialRoom.nombreTema || initialRoom.nombre || initialRoom.tipo || '').trim();
+        const match = tematicas.find(t => 
+          t.nombreTema.toLowerCase() === buscado.toLowerCase() || 
+          t.tipo.toLowerCase() === buscado.toLowerCase()
+        );
+        temaInit = match ? match.nombreTema : (tematicas.find(t => t.habitacionesLibres > 0)?.nombreTema || tematicas[0]?.nombreTema || '');
+      } else {
+        const primeraLibre = tematicas.find(t => t.habitacionesLibres > 0);
+        temaInit = primeraLibre ? primeraLibre.nombreTema : (tematicas[0]?.nombreTema || '');
       }
+      setSelectedTema(temaInit);
 
       if (initialPackage) {
         setSelectedPackageId(initialPackage.id || '');
@@ -96,16 +109,53 @@ export default function BookingModal({
 
   if (!isOpen) return null;
 
-  // Habitación activa
-  const currentRoom = rooms.find(r => String(r.id) === String(selectedRoomId) || String(r.numero) === String(selectedRoomId)) || rooms[0] || {
-    numero: '201',
+  // Temáticas del piso seleccionado
+  const tematicasPiso = getTematicasPorPiso(selectedPiso, rooms);
+
+  // Asegurar que temaActivoNombre sea una temática válida del piso actual con disponibilidad
+  let temaActivoNombre = selectedTema;
+  if (!tematicasPiso.some(t => t.nombreTema.toLowerCase() === (temaActivoNombre || '').toLowerCase())) {
+    const primeraLibre = tematicasPiso.find(t => t.habitacionesLibres > 0);
+    temaActivoNombre = primeraLibre ? primeraLibre.nombreTema : (tematicasPiso[0]?.nombreTema || '');
+  }
+
+  // Asignación automática de habitación disponible basada en Piso + Temática
+  const { asignada: roomAsignada, libresTemaEnPiso, totalTemaEnPiso } = asignarHabitacionAutomatica(
+    selectedPiso, 
+    temaActivoNombre, 
+    rooms
+  );
+
+  // Habitación activa y datos para cotización
+  const currentRoom = roomAsignada || tematicasPiso.find(t => t.nombreTema === temaActivoNombre) || rooms[0] || {
+    numero: 'Sin asignar',
     tipo: 'Suite',
-    nombreTema: 'Suite con Jacuzzi',
-    precioBloque: 250.00
+    nombreTema: temaActivoNombre,
+    precioBloque: 125.00,
+    capacidad: 2
+  };
+
+  const handlePisoChange = (pisoStr) => {
+    const nuevoPiso = parseInt(pisoStr, 10);
+    setSelectedPiso(nuevoPiso);
+    const temasDelNuevoPiso = getTematicasPorPiso(nuevoPiso, rooms);
+    if (temasDelNuevoPiso.length > 0) {
+      // Intentar preservar temática si existe en el nuevo piso Y tiene stock libre > 0
+      const mismaConStock = temasDelNuevoPiso.find(t => 
+        t.nombreTema.toLowerCase() === selectedTema.toLowerCase() && t.habitacionesLibres > 0
+      );
+      if (mismaConStock) {
+        setSelectedTema(mismaConStock.nombreTema);
+      } else {
+        // Seleccionar la primera temática con stock libre > 0 en el nuevo piso
+        const primeraConStock = temasDelNuevoPiso.find(t => t.habitacionesLibres > 0);
+        setSelectedTema(primeraConStock ? primeraConStock.nombreTema : temasDelNuevoPiso[0].nombreTema);
+      }
+    }
   };
 
   // Cálculo de tarifa base según bloque
-  let basePrice = currentRoom.precioBloque || 220.00;
+  let basePrice = currentRoom.precioBloque || 125.00;
   if (selectedBloque === '6 HORAS') {
     basePrice = Math.round(basePrice * 0.65);
   } else if (selectedBloque === '12 HORAS') {
@@ -148,6 +198,11 @@ export default function BookingModal({
       return;
     }
 
+    if (!roomAsignada) {
+      setErrorMsg(`No hay habitaciones disponibles para la temática "${temaActivoNombre}" en el Piso ${selectedPiso}. Por favor selecciona otro piso o temática.`);
+      return;
+    }
+
     const metodo = getMetodoPago(metodoPago);
     if (!metodo) {
       setErrorMsg('Selecciona una forma de pago.');
@@ -162,15 +217,17 @@ export default function BookingModal({
     const payload = {
       huesped: nombreHuesped.trim(),
       documento: documentoHuesped.trim(),
-      email: emailHuesped.trim() || 'cliente@wimbledon.com',
       telefono: telefonoWhatsApp.trim(),
-      habitacion: currentRoom.numero,
-      habitacionId: currentRoom.id,
-      tipo: currentRoom.tipo || 'Suite',
+      habitacion: roomAsignada.numero,
+      habitacionId: roomAsignada.id,
+      tipo: roomAsignada.nombreTema || roomAsignada.tipo || 'Suite',
+      capacidad: roomAsignada.capacidad || 2,
       tarifaBase: basePrice,
       bloque: selectedBloque,
       checkIn: checkIn.split('-').reverse().join('/'),
       checkOut: checkOut.split('-').reverse().join('/'),
+      fechaCheckInISO: checkIn,
+      fechaCheckOutISO: checkOut,
       paqueteFestividad: activePackage || null,
       itemsCarta: selectedCartaPromos,
       total: totalEstimado,
@@ -245,9 +302,14 @@ export default function BookingModal({
                 <input
                   type="text"
                   required
+                  maxLength={80}
                   placeholder="Ej: Carlos Mendoza Ruiz"
                   value={nombreHuesped}
-                  onChange={(e) => setNombreHuesped(e.target.value)}
+                 onChange={(e) =>
+                 setNombreHuesped(
+                 e.target.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s'-]/g, '')
+  )
+}
                   style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', background: '#1e293b', border: '1px solid #334155', color: '#ffffff', fontSize: '13px' }}
                 />
               </div>
@@ -257,9 +319,14 @@ export default function BookingModal({
                 <input
                   type="text"
                   required
+                  maxLength={15}
                   placeholder="Ej: 71234567"
                   value={documentoHuesped}
-                  onChange={(e) => setDocumentoHuesped(e.target.value)}
+                  onChange={(e) =>
+                  setDocumentoHuesped(
+                  e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
+  )
+}
                   style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', background: '#1e293b', border: '1px solid #334155', color: '#ffffff', fontSize: '13px' }}
                 />
               </div>
@@ -267,51 +334,74 @@ export default function BookingModal({
               <div>
                 <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>Teléfono / WhatsApp *</label>
                 <input
-                  type="text"
+                  type="tel"
+                  maxLength={18}
+                  inputMode="tel"
                   required
                   placeholder="Ej: +51 987 654 321"
                   value={telefonoWhatsApp}
-                  onChange={(e) => setTelefonoWhatsApp(e.target.value)}
+                  onChange={(e) => setTelefonoWhatsApp(e.target.value.replace(/[^0-9+\s-]/g, ''))}
                   style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', background: '#1e293b', border: '1px solid #334155', color: '#ffffff', fontSize: '13px' }}
                 />
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>Correo Electrónico</label>
-                <input
-                  type="email"
-                  placeholder="Ej: cliente@gmail.com"
-                  value={emailHuesped}
-                  onChange={(e) => setEmailHuesped(e.target.value)}
-                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', background: '#1e293b', border: '1px solid #334155', color: '#ffffff', fontSize: '13px' }}
-                />
-              </div>
             </div>
           </div>
 
-          {/* Sección 2: Suite y Estancia */}
+          {/* Sección 2: Suite y Estancia (Flujo: Piso + Temática -> Asignación Automática) */}
           <div style={{ marginBottom: '24px' }}>
             <h4 style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#D4AF37', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Clock size={15} /> 2. Elección de Suite y Modalidad de Tarifa
+              <Layers size={15} /> 2. Elección de Piso, Temática y Modalidad
             </h4>
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+              {/* 1. Selección de Piso */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>Suite Seleccionada</label>
+                <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
+                  Piso Deseado *
+                </label>
                 <select
-                  value={selectedRoomId}
-                  onChange={(e) => setSelectedRoomId(e.target.value)}
+                  value={selectedPiso}
+                  onChange={(e) => handlePisoChange(e.target.value)}
                   style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', background: '#1e293b', border: '1px solid #334155', color: '#ffffff', fontSize: '13px' }}
                 >
-                  {rooms.map(r => (
-                    <option key={r.id || r.numero} value={r.id || r.numero}>
-                      Hab. {r.numero} - {r.nombreTema || r.tipo} (S/ {r.precioBloque})
+                  {PISOS_INFO.map(p => (
+                    <option key={p.piso} value={p.piso}>
+                      {p.nombre}
                     </option>
                   ))}
                 </select>
+                <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px', display: 'block' }}>
+                  {PISOS_INFO.find(p => p.piso === selectedPiso)?.descripcion}
+                </span>
               </div>
 
+              {/* 2. Selección de Temática */}
               <div>
-                <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>Modalidad de Estancia</label>
+                <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
+                  Temática de Suite (Piso {selectedPiso}) *
+                </label>
+                <select
+                  value={selectedTema}
+                  onChange={(e) => setSelectedTema(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', background: '#1e293b', border: '1px solid #334155', color: '#ffffff', fontSize: '13px' }}
+                >
+                  {tematicasPiso.map(t => (
+                    <option key={t.nombreTema} value={t.nombreTema}>
+                      {t.nombreTema} (S/ {t.precioBloque.toFixed(2)} · {t.habitacionesLibres > 0 ? `${t.habitacionesLibres} libres` : 'Agotado'})
+                    </option>
+                  ))}
+                </select>
+                <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px', display: 'block' }}>
+                  {tematicasPiso.find(t => t.nombreTema === selectedTema)?.tipo} · Máx {tematicasPiso.find(t => t.nombreTema === selectedTema)?.capacidad || 2} personas
+                </span>
+              </div>
+
+              {/* 3. Modalidad de Estancia */}
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>
+                  Modalidad de Estancia
+                </label>
                 <select
                   value={selectedBloque}
                   onChange={(e) => setSelectedBloque(e.target.value)}
@@ -321,8 +411,14 @@ export default function BookingModal({
                   <option value="12 HORAS">Bloque 12 Horas</option>
                   <option value="PERNOCTE">Pernocte / 24 Horas</option>
                 </select>
+                <span style={{ fontSize: '11px', color: '#38bdf8', marginTop: '3px', display: 'block' }}>
+                  Tarifa base estimada: S/ {basePrice.toFixed(2)}
+                </span>
               </div>
+            </div>
 
+            {/* Fila de Fechas */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginTop: '14px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>Fecha de Entrada (Check-In)</label>
                 <input
@@ -343,6 +439,71 @@ export default function BookingModal({
                 />
               </div>
             </div>
+
+            {/* Asignación Automática de Habitación Disponible */}
+            {roomAsignada ? (
+              <div style={{
+                marginTop: '16px',
+                background: '#064e3b25',
+                border: '1px solid #10b981',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ background: '#10b981', color: '#ffffff', fontSize: '10px', fontWeight: 800, padding: '2px 8px', borderRadius: '999px', letterSpacing: '0.05em' }}>
+                      ASIGNACIÓN AUTOMÁTICA
+                    </span>
+                    <strong style={{ fontSize: '15px', color: '#D4AF37' }}>
+                      Habitación {roomAsignada.numero} (Piso {roomAsignada.piso})
+                    </strong>
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#e2e8f0', marginTop: '4px' }}>
+                    Temática: <strong>{roomAsignada.nombreTema}</strong> · Capacidad Máxima: <strong>{roomAsignada.capacidad} personas</strong>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '6px', fontSize: '11px', color: '#94a3b8' }}>
+                    {roomAsignada.tieneJacuzzi && <span>♨ Jacuzzi</span>}
+                    {roomAsignada.tieneSauna && <span>✦ Sauna seco</span>}
+                    {roomAsignada.tienePoleDance && <span>💃 Pole Dance</span>}
+                    {roomAsignada.tieneSillonTantrico && <span>🛋 Sillón Tántrico</span>}
+                    {roomAsignada.tieneCocheraDirecta && <span>🚗 Cochera Directa</span>}
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: '11px', color: '#94a3b8' }}>Disponibilidad en este piso:</span>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#10b981' }}>
+                    {libresTemaEnPiso} {libresTemaEnPiso === 1 ? 'habitación libre' : 'habitaciones libres'} de {totalTemaEnPiso}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                marginTop: '16px',
+                background: '#ef444420',
+                border: '1px solid #ef4444',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                color: '#fca5a5',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px'
+              }}>
+                <AlertTriangle size={18} color="#ef4444" />
+                <div>
+                  <strong>Stock agotado:</strong> No hay habitaciones disponibles para la temática "{temaActivoNombre}" en el Piso {selectedPiso}.
+                  <div style={{ fontSize: '11.5px', color: '#fca5a5', marginTop: '2px' }}>
+                    Por favor selecciona otro piso u otra temática que cuente con stock libre para poder continuar con la reserva.
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sección 3: Paquete Festividad (Opcional) */}
@@ -500,18 +661,20 @@ export default function BookingModal({
             </button>
             <button 
               type="submit" 
+              disabled={!roomAsignada}
               style={{ 
-                background: '#D4AF37', 
+                background: roomAsignada ? 'linear-gradient(135deg, #D4AF37, #B8860B)' : '#334155', 
                 border: 'none', 
-                color: '#0f172a', 
+                color: roomAsignada ? '#0c1e36' : '#94a3b8', 
                 padding: '10px 24px', 
                 borderRadius: '6px', 
                 fontWeight: 'bold', 
                 fontSize: '14px', 
-                cursor: 'pointer',
+                cursor: roomAsignada ? 'pointer' : 'not-allowed',
                 display: 'flex',
                 alignItems: 'center',
-                gap: '8px'
+                gap: '8px',
+                boxShadow: roomAsignada ? '0 4px 14px rgba(212, 175, 55, 0.35)' : 'none'
               }}
             >
               <Sparkles size={16} /> Confirmar Reserva y Ver Boleta

@@ -26,10 +26,12 @@ import { INITIAL_ROOMS, INITIAL_RESERVATIONS, api, setPermisoReservas } from './
 import useLiveSync from './services/useLiveSync';
 import BookingModal from './components/modals/BookingModal';
 import ReceiptModal from './components/modals/ReceiptModal';
+import CheckInValidationModal from './components/modals/CheckInValidationModal';
 import MenuDetailModal from './components/modals/MenuDetailModal';
 import EfectosNavidad from './components/common/EfectosNavidad';
 import RoomRatesPanel from './components/RoomRatesPanel';
 import SoporteForm from './components/SoporteForm';
+import FloatingSupportModal from './components/modals/FloatingSupportModal';
 import HABITACIONES_REALES from './data/habitaciones.json';
 
 /* ---------- DATOS COMPLETOS DE LA CARTA Y PROMOCIONES ---------- */
@@ -155,8 +157,9 @@ export const MENU_CATEGORIES_DATA = [
 
 /* ---------- DATOS EDITABLES DE HABITACIONES Y OFERTAS ---------- */
 const tipoDe = (nombre) => /presidencial/i.test(nombre) ? 'Presidencial' : /simple/i.test(nombre) ? 'Simple' : /delux/i.test(nombre) ? 'Delux' : 'Suite';
-const tiposHabitaciones = HABITACIONES_REALES.map((h) => ({
+const tiposHabitaciones = HABITACIONES_REALES.map((h, index) => ({
   id: h.id,
+  piso: (index % 3) + 1,
   numero: String(h.id),
   tipo: tipoDe(h.nombre),
   nombre: h.nombre,
@@ -240,6 +243,9 @@ function App() {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [isMenuModalOpen, setIsMenuModalOpen] = useState(false);
+  const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
+  const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [reservaAValidar, setReservaAValidar] = useState(null);
 
   // Parámetros de Reserva Dinámicos
   const [bookingRoom, setBookingRoom] = useState(null);
@@ -419,6 +425,20 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
     setIsReceiptModalOpen(true);
   };
 
+  const handleValidateCheckInLanding = (resId, details) => {
+    setReservations(prev => prev.map(r => r.id === resId ? { ...r, estado: 'En Habitación' } : r));
+    setRooms(prev => prev.map(room => {
+      const target = reservations.find(r => r.id === resId);
+      if (target && String(room.numero) === String(target.habitacion)) {
+        return { ...room, estado: 'OCUPADA' };
+      }
+      return room;
+    }));
+    if (latestReservation && latestReservation.id === resId) {
+      setLatestReservation(prev => ({ ...prev, estado: 'En Habitación' }));
+    }
+  };
+
   // Si estamos en el portal de empleados, renderizamos el Dashboard correspondiente con estado sincronizado
   if (!authChecked) return null;
 
@@ -458,7 +478,7 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
           <a href="#ofertas" className="nav-item">Ofertas</a>
           <a href="#servicios" className="nav-item">Servicios</a>
           <a href="#ubicacion" className="nav-item">Ubicación</a>
-          <a href="#soporte" className="nav-item">Soporte</a>
+          <a href="#soporte" className="nav-item" onClick={(e) => { e.preventDefault(); setIsSupportModalOpen(true); }}>Soporte</a>
           <a href="#faq" className="nav-item">Preguntas</a>
         </nav>
         <button 
@@ -592,6 +612,16 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
                 <div className="media"><Img src={t.img} alt={t.nombre} /></div>
                 <div className="menu-card-body">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px', marginBottom: '4px' }}>
+                    <span style={{
+                     display: 'block',
+                     fontSize: '10px',
+                     color: '#D4AF37',
+                     letterSpacing: '1px',
+                     fontWeight: 600,
+                     marginBottom: '5px'
+}}>
+  PISO {t.piso}
+</span>
                     <h3 className="card-title" style={{ margin: 0 }}>{t.nombre}</h3>
                     <span className="price-tag">Desde {t.precioExacto}</span>
                   </div>
@@ -744,29 +774,6 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
         </div>
       </section>
 
-      {/* SOPORTE PARA HABITACIONES */}
-      <section className="support-section" id="soporte">
-        <div className="max-container support-layout">
-          <div className="support-copy">
-            <span className="section-tagline">SOS 24 HORAS</span>
-            <h2 className="section-title">¿Hay algún inconveniente en tu habitación?</h2>
-            <p>Dínos qué ocurre y atención al huésped o mantenimiento dejará lista tu suite sin salir de la habitación.</p>
-            <ul className="support-promises">
-              <li>Reporte directo con tu número de habitación</li>
-              <li>Respuesta del equipo dentro de la siguiente media hora</li>
-              <li>Confirmación por el contacto que indiques</li>
-            </ul>
-            <div className="support-emergency">
-              <strong><Wrench size={16} /> ¿Es urgente o hay riesgo?</strong>
-              <a href="tel:+51990123456">Llama o escribe al +51 990 123 456</a>
-            </div>
-          </div>
-          <div className="support-card">
-            <SoporteForm origen="CLIENTE" rooms={rooms} />
-          </div>
-        </div>
-      </section>
-
       {/* UBICACIÓN */}
       <section className="location-section" id="ubicacion">
         <div className="location-grid">
@@ -873,8 +880,30 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
             setIsReceiptModalOpen(false);
             handleOpenStaffPortal();
           }}
+          onOpenCheckInValidation={(res) => {
+            setIsReceiptModalOpen(false);
+            setReservaAValidar(res || latestReservation);
+            setIsValidationModalOpen(true);
+          }}
         />
       )}
+
+      {/* MODAL VALIDACIÓN DE INGRESO (CHECK-IN SIN CONTACTO / GPS / TÓTEM) */}
+      <CheckInValidationModal
+        isOpen={isValidationModalOpen}
+        onClose={() => { setIsValidationModalOpen(false); setReservaAValidar(null); }}
+        reservations={reservations}
+        rooms={rooms}
+        initialReservation={reservaAValidar || latestReservation}
+        onValidateCheckIn={handleValidateCheckInLanding}
+      />
+
+      {/* MODAL Y BOTÓN FLOTANTE: SOPORTE DE HABITACIONES */}
+      <FloatingSupportModal
+        isOpen={isSupportModalOpen}
+        setIsOpen={setIsSupportModalOpen}
+        rooms={rooms}
+      />
 
       {/* MODAL 3: DESPLIEGUE COMPLETO DE CARTA DEL MENÚ Y PROMOCIONES */}
       {isMenuModalOpen && selectedMenuCategory && (

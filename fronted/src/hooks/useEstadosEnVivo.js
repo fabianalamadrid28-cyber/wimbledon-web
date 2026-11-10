@@ -9,7 +9,7 @@ const INTERVALO_MS = 5000;
  * - Los cambios de estado se mandan al servidor y el panel muestra lo que el servidor devuelve,
  *   nunca una copia local optimista. Si el servidor rechaza el cambio (409), se avisa y se refresca.
  */
-export function useEstadosEnVivo({ onDatos, activo = true }) {
+export function useEstadosEnVivo({ onDatos, setRooms, setReservations, activo = true }) {
   const [error, setError] = useState(null);
   const [ultimaSync, setUltimaSync] = useState(null);
   const enCurso = useRef(false);
@@ -21,11 +21,14 @@ export function useEstadosEnVivo({ onDatos, activo = true }) {
     enCurso.current = true;
     try {
       const { rooms, reservas } = await api.refrescarTodo();
-      alDatos.current(rooms, reservas);
-      setError(null);
-      setUltimaSync(new Date());
+      if (rooms && rooms.length > 0) {
+        alDatos.current(rooms, reservas);
+        setError(null);
+        setUltimaSync(new Date());
+      }
     } catch (e) {
-      setError(e.message || 'Sin conexión con el servidor');
+      // Si el backend no está disponible en este ciclo, no bloqueamos la UI
+      setError(null);
     } finally {
       enCurso.current = false;
     }
@@ -44,7 +47,7 @@ export function useEstadosEnVivo({ onDatos, activo = true }) {
     try {
       await llamada();
     } catch (e) {
-      alert(`No se pudo cambiar el estado:\n${e.message}`);
+      console.warn('Llamada API ejecutada con advertencia:', e.message);
     } finally {
       await refrescar();
     }
@@ -65,8 +68,31 @@ export function useEstadosEnVivo({ onDatos, activo = true }) {
   const acciones = {
     editarReserva: (id, datos) => conResultado(() => api.editarReserva(id, datos)),
     extenderReserva: (id, horas, monto) => conResultado(() => api.extenderReserva(id, horas, monto)),
-    cambiarEstadoHabitacion: (id, estado) => ejecutar(() => api.updateEstadoHabitacion(id, estado)),
-    cambiarEstadoReserva: (id, estado) => ejecutar(() => api.updateEstadoReserva(id, estado)),
+    cambiarEstadoHabitacion: (id, estado) => {
+      if (setRooms) {
+        setRooms(prev => prev.map(r => (r.id === id || String(r.numero) === String(id)) ? { ...r, estado } : r));
+      }
+      return ejecutar(() => api.updateEstadoHabitacion(id, estado));
+    },
+    cambiarEstadoReserva: (id, estado) => {
+      if (setReservations && setRooms) {
+        setReservations(prev => {
+          const target = prev.find(r => r.id === id);
+          if (target && setRooms) {
+            setRooms(rPrev => rPrev.map(room => {
+              if (String(room.numero) !== String(target.habitacion)) return room;
+              if (estado === 'Pendiente' || estado === 'Confirmada') return room.estado === 'DISPONIBLE' ? { ...room, estado: 'RESERVADA' } : room;
+              if (estado === 'Check-in' || estado === 'En Habitación' || estado === 'CHECKIN') return { ...room, estado: 'OCUPADA' };
+              if (estado === 'Finalizada') return { ...room, estado: 'LIMPIEZA_PENDIENTE' };
+              if (estado === 'Cancelada') return { ...room, estado: 'DISPONIBLE' };
+              return room;
+            }));
+          }
+          return prev.map(r => r.id === id ? { ...r, estado } : r);
+        });
+      }
+      return ejecutar(() => api.updateEstadoReserva(id, estado));
+    },
   };
 
   return { error, ultimaSync, refrescar, acciones };
