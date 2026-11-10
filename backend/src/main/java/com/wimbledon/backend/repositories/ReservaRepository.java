@@ -1,6 +1,7 @@
 package com.wimbledon.backend.repositories;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.wimbledon.backend.entities.Reserva;
+import com.wimbledon.backend.enums.EstadoReserva;
 
 @Repository
 public interface ReservaRepository extends JpaRepository<Reserva, Long> {
@@ -25,4 +27,28 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
             @Param("habitacionId") Long habitacionId, 
             @Param("fecha") LocalDate fecha
     );
+
+    // Reservas vigentes (que ocupan la habitación) de una habitación
+    @Query("SELECT r FROM Reserva r WHERE r.habitacion.id = :habitacionId AND r.estado IN :estados")
+    List<Reserva> findByHabitacionAndEstados(
+            @Param("habitacionId") Long habitacionId,
+            @Param("estados") List<EstadoReserva> estados
+    );
+
+    List<Reserva> findByEstado(EstadoReserva estado);
+
+    // Soporte: ¿ese documento es el huésped de una reserva vigente en esa habitación?
+    @Query("SELECT COUNT(r) > 0 FROM Reserva r WHERE r.habitacion.numero = :numero " +
+           "AND UPPER(TRIM(r.documentoHuesped)) = :documento AND r.estado IN :estados")
+    boolean existsHuespedEnHabitacion(
+            @Param("numero") String numero,
+            @Param("documento") String documento,
+            @Param("estados") List<EstadoReserva> estados
+    );
+
+    // Un mismo comprobante (Yape/Plin/transferencia) no puede pagar dos reservas vigentes
+    boolean existsByMetodoPagoAndNumeroOperacionAndEstadoNot(String metodoPago, String numeroOperacion, EstadoReserva estado);
+
+    // Reservas PENDIENTE creadas antes del límite (no confirmadas a tiempo)
+    List<Reserva> findByEstadoAndCreadaEnBefore(EstadoReserva estado, LocalDateTime limite);
 }

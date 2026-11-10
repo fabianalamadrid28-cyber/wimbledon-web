@@ -13,6 +13,7 @@ USE `wimbledon_db`;
 -- Desactivar temporalmente verificación de claves foráneas para recreación limpia
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS `soporte_reportes`;
 DROP TABLE IF EXISTS `reservas`;
 DROP TABLE IF EXISTS `habitaciones`;
 DROP TABLE IF EXISTS `usuarios`;
@@ -78,10 +79,31 @@ CREATE TABLE `reservas` (
   `token_acceso_qr` VARCHAR(255) NOT NULL UNIQUE,
   `estado` VARCHAR(50) NOT NULL DEFAULT 'CONFIRMADA',
   `notas_adicionales` TEXT DEFAULT NULL,
+  `metodo_pago` VARCHAR(30) DEFAULT NULL, -- 'YAPE', 'PLIN', 'TRANSFERENCIA', 'EN_HOTEL'
+  `numero_operacion` VARCHAR(30) DEFAULT NULL, -- N° de operación de Yape/Plin/transferencia (6 a 12 dígitos)
   `fecha_creacion` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT `fk_reserva_habitacion` FOREIGN KEY (`habitacion_id`) REFERENCES `habitaciones` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ==============================================================================
+-- 4. TABLA: soporte_reportes
+-- Un inconveniente de una habitación reportado por cliente o personal de limpieza
+-- Estados: PENDIENTE, EN_ATENCION, RESUELTO
+-- ==============================================================================
+CREATE TABLE `soporte_reportes` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `origen` ENUM('CLIENTE', 'LIMPIEZA') NOT NULL,
+  `habitacion` VARCHAR(50) NOT NULL,
+  `nombre_contacto` VARCHAR(255) DEFAULT NULL,
+  `contacto` VARCHAR(255) DEFAULT NULL,
+  `categoria` VARCHAR(80) NOT NULL,
+  `prioridad` ENUM('ALTA', 'MEDIA', 'BAJA') NOT NULL DEFAULT 'MEDIA',
+  `descripcion` TEXT NOT NULL,
+  `estado` ENUM('PENDIENTE', 'EN_ATENCION', 'RESUELTO') NOT NULL DEFAULT 'PENDIENTE',
+  `creado_en` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX `idx_soporte_estado_creado` (`estado`, `creado_en`),
+  INDEX `idx_soporte_habitacion` (`habitacion`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 -- ==============================================================================
 -- INSERCIÓN DE DATOS: USUARIOS Y ROLES MAPEADOS
 -- Contraseñas de prueba fáciles de recordar para el entorno de desarrollo

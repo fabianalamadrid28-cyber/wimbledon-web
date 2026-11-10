@@ -14,7 +14,7 @@ import {
   Home
 } from 'lucide-react';
 
-export default function Sidebar({ currentRole, currentTab, setCurrentTab, onLogout, onGoToLogin, user }) {
+export default function Sidebar({ currentRole, currentTab, setCurrentTab, onLogout, onGoToLanding, user }) {
   // Navigation menu items based on role
   const getNavItems = () => {
     switch (currentRole) {
@@ -23,7 +23,8 @@ export default function Sidebar({ currentRole, currentTab, setCurrentTab, onLogo
           { id: 'inicio', label: 'Inicio', icon: LayoutDashboard },
           { id: 'reservas', label: 'Reservas', icon: CalendarCheck },
           { id: 'habitaciones', label: 'Habitaciones', icon: DoorClosed },
-          { id: 'reportes', label: 'Reportes', icon: BarChart3 }
+          { id: 'reportes', label: 'Reportes', icon: BarChart3 },
+          { id: 'usuarios', label: 'Usuarios', icon: Users }
         ];
       case 'RECEPCION':
         return [
@@ -39,7 +40,7 @@ export default function Sidebar({ currentRole, currentTab, setCurrentTab, onLogo
           { id: 'inicio', label: 'Tablero de Aseo', icon: Sparkles },
           { id: 'habitaciones', label: 'Habitaciones', icon: DoorClosed },
           { id: 'checklists', label: 'Checklists de Aseo', icon: CheckSquare },
-          { id: 'mantenimiento', label: 'Reportes de Averías', icon: Wrench }
+          { id: 'mantenimiento', label: 'Soporte de Habitaciones', icon: Wrench }
         ];
       default:
         return [];
@@ -59,7 +60,7 @@ export default function Sidebar({ currentRole, currentTab, setCurrentTab, onLogo
       {/* Brand Header - Dando clic en el propio logo se vuelve a la página principal */}
       <div 
         className="dash-sidebar-header" 
-        onClick={onLogout}
+        onClick={onGoToLanding}
         style={{ cursor: 'pointer' }}
         title="Volver a la página principal"
       >
@@ -90,26 +91,28 @@ export default function Sidebar({ currentRole, currentTab, setCurrentTab, onLogo
 
       {/* Bottom Actions */}
       <div className="dash-sidebar-footer">
-        <button className="dash-nav-btn" onClick={() => setCurrentTab('configuracion')}>
-          <Settings size={18} />
-          <span>Configuración</span>
-        </button>
+        {currentRole === 'ADMIN' && (
+          <button className="dash-nav-btn" onClick={() => setCurrentTab('configuracion')}>
+            <Settings size={18} />
+            <span>Configuración</span>
+          </button>
+        )}
 
         {/* Botón para regresar al Login / Portal de Empleados */}
         <button 
           className="dash-nav-btn" 
-          onClick={onGoToLogin || onLogout} 
+          onClick={onLogout} 
           style={{ color: '#38bdf8', fontWeight: 600 }}
-          title="Regresar a la selección de roles y login"
+          title="Cerrar sesión"
         >
-          <KeyRound size={18} />
-          <span>Regresar al Login</span>
+          <LogOut size={18} />
+          <span>Cerrar sesión</span>
         </button>
 
         {/* Botón para volver a la página web principal */}
         <button 
           className="dash-nav-btn" 
-          onClick={onLogout} 
+          onClick={onGoToLanding} 
           style={{ color: '#94a3b8' }}
           title="Salir a la página principal"
         >

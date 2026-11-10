@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { api, aplicarEstadoReservaLocal } from '../../services/api';
+import EditReservationModal from '../../components/modals/EditReservationModal';
 import { 
   Bed, 
   CalendarCheck, 
@@ -26,13 +28,17 @@ export default function AdminDashboard({
   setRooms, 
   reservations = [], 
   setReservations,
+  acciones,
   searchTerm = '' 
 }) {
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [isRoomModalOpen, setIsRoomModalOpen] = useState(false);
   const [isPdfModalOpen, setIsPdfModalOpen] = useState(false);
-  const [selectedReservation, setSelectedReservation] = useState(null);
+  const [selectedReservationId, setSelectedReservationId] = useState(null);
+  const selectedReservation = (Array.isArray(reservations) ? reservations : []).find((r) => r.id === selectedReservationId) || null;
+  const setSelectedReservation = (res) => setSelectedReservationId(res ? res.id : null);
   const [isGuestModalOpen, setIsGuestModalOpen] = useState(false);
+  const [reservaEnEdicion, setReservaEnEdicion] = useState(null);
 
   // Filters
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -44,28 +50,41 @@ export default function AdminDashboard({
     setIsRoomModalOpen(true);
   };
 
-  const handleSaveRoom = (savedRoom) => {
+  const handleSaveRoom = async (savedRoom) => {
     if (savedRoom.id) {
       setRooms(prev => prev.map(r => r.id === savedRoom.id ? savedRoom : r));
+      await api.updateHabitacion(savedRoom.id, savedRoom);
     } else {
-      const newRoom = {
+      const newRoom = await api.createHabitacion({
         ...savedRoom,
-        id: Date.now(),
         numero: savedRoom.numero || '104'
-      };
+      });
       setRooms(prev => [newRoom, ...prev]);
     }
+    api.syncAll(setRooms, setReservations);
   };
 
-  const handleDeleteRoom = (id) => {
+  const handleDeleteRoom = async (id) => {
     if (window.confirm("¿Seguro que deseas eliminar esta habitación?")) {
       setRooms(prev => prev.filter(r => r.id !== id));
+      await api.deleteHabitacion(id);
+      api.syncAll(setRooms, setReservations);
     }
   };
 
-  const handleDeleteReservation = (id) => {
-    if (window.confirm("¿Seguro que deseas cancelar/eliminar esta reserva?")) {
-      setReservations(prev => prev.filter(r => r.id !== id));
+  // Cancelar libera la habitación; la reserva queda en el historial como Cancelada
+  const handleDeleteReservation = async (id) => {
+    const res = reservations.find(r => r.id === id);
+    if (!res) return;
+    if (!res.puedeCancelar) { alert(res.motivoNoCancelable || 'Esta reserva ya no se puede cancelar.'); return; }
+    if (window.confirm("¿Seguro que deseas cancelar esta reserva?")) {
+      try {
+        // Primero el servidor decide (regla de las 3 horas); la pantalla muestra lo que él responde
+        await api.updateEstadoReserva(id, 'Cancelada');
+      } catch (e) {
+        alert(`No se pudo cancelar:\n${e.message}`);
+      }
+      api.syncAll(setRooms, setReservations);
     }
   };
 
@@ -107,11 +126,30 @@ export default function AdminDashboard({
     return numStr.includes(term) || tipoStr.includes(term) || estadoStr.includes(term);
   });
 
-  // KPI Calculations
-  const totalRooms = safeRooms.length > 0 ? safeRooms.length : 40;
-  const activeReservationsCount = safeReservations.length > 0 ? safeReservations.length : 18;
-  const hostedGuests = 25;
-  const occupancyPercentage = 65;
+  // KPI Calculations 100% dinámicos en base al estado real en tiempo real
+  const totalRooms = safeRooms.length;
+  const occupiedRooms = safeRooms.filter(r => r.estado === 'OCUPADA').length;
+  const activeReservations = safeReservations.filter(r => 
+    ['Confirmada', 'Pendiente', 'Check-in', 'En Habitación'].includes(r.estado)
+  );
+  const activeReservationsCount = activeReservations.length;
+
+  // Huéspedes actualmente alojados (Check-in o En Habitación)
+  const inHouseReservations = safeReservations.filter(r => 
+    r.estado === 'Check-in' || r.estado === 'En Habitación'
+  );
+  const hostedGuests = inHouseReservations.reduce((sum, r) => sum + (parseInt(r.capacidad, 10) || 2), 0);
+  
+  // Porcentajes reales
+  const occupancyPercentage = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
+  const activeReservationsPct = totalRooms > 0 ? Math.min(100, Math.round((activeReservationsCount / totalRooms) * 100)) : 0;
+  const maxPossibleGuests = safeRooms.reduce((sum, r) => sum + (parseInt(r.capacidad, 10) || 2), 0) || 64;
+  const hostedGuestsPct = maxPossibleGuests > 0 ? Math.min(100, Math.round((hostedGuests / maxPossibleGuests) * 100)) : 0;
+
+  // Total ingresos estimados en tiempo real
+  const totalRevenue = safeReservations
+    .filter(r => r.estado !== 'Cancelada')
+    .reduce((sum, r) => sum + (parseFloat(r.total) || 0), 0);
 
   return (
     <div>
@@ -122,7 +160,7 @@ export default function AdminDashboard({
           <div className="dash-page-header">
             <div>
               <h1>¡Bienvenido, Administrador!</h1>
-              <p>Aquí tienes un resumen del estado actual del hotel.</p>
+              <p>Resumen gerencial de disponibilidad, reservas e ingresos en tiempo real.</p>
             </div>
           </div>
 
@@ -140,7 +178,7 @@ export default function AdminDashboard({
               <div className="kpi-progress-bar-wrap">
                 <div className="kpi-progress-bar-fill blue" style={{ width: '100%' }}></div>
               </div>
-              <span style={{ fontSize: '11px', color: '#64748b', textAlign: 'right' }}>100%</span>
+              <span style={{ fontSize: '11px', color: '#64748b', textAlign: 'right' }}>100% inventario</span>
             </div>
 
             {/* Card 2: Reservas activas */}
@@ -153,9 +191,9 @@ export default function AdminDashboard({
               <span className="kpi-title">Reservas activas</span>
               <div className="kpi-value">{activeReservationsCount}</div>
               <div className="kpi-progress-bar-wrap">
-                <div className="kpi-progress-bar-fill green" style={{ width: '45%' }}></div>
+                <div className="kpi-progress-bar-fill green" style={{ width: `${activeReservationsPct}%` }}></div>
               </div>
-              <span style={{ fontSize: '11px', color: '#64748b', textAlign: 'right' }}>45%</span>
+              <span style={{ fontSize: '11px', color: '#64748b', textAlign: 'right' }}>{activeReservationsPct}% demanda</span>
             </div>
 
             {/* Card 3: Huéspedes alojados */}
@@ -168,9 +206,9 @@ export default function AdminDashboard({
               <span className="kpi-title">Huéspedes alojados</span>
               <div className="kpi-value">{hostedGuests}</div>
               <div className="kpi-progress-bar-wrap">
-                <div className="kpi-progress-bar-fill purple" style={{ width: '63%' }}></div>
+                <div className="kpi-progress-bar-fill purple" style={{ width: `${hostedGuestsPct}%` }}></div>
               </div>
-              <span style={{ fontSize: '11px', color: '#64748b', textAlign: 'right' }}>63%</span>
+              <span style={{ fontSize: '11px', color: '#64748b', textAlign: 'right' }}>{hostedGuestsPct}% aforo máx</span>
             </div>
 
             {/* Card 4: Ocupación del hotel */}
@@ -183,9 +221,9 @@ export default function AdminDashboard({
               <span className="kpi-title">Ocupación del hotel</span>
               <div className="kpi-value">{occupancyPercentage}%</div>
               <div className="kpi-progress-bar-wrap">
-                <div className="kpi-progress-bar-fill orange" style={{ width: '65%' }}></div>
+                <div className="kpi-progress-bar-fill orange" style={{ width: `${occupancyPercentage}%` }}></div>
               </div>
-              <span style={{ fontSize: '11px', color: '#64748b', textAlign: 'right' }}>65%</span>
+              <span style={{ fontSize: '11px', color: '#64748b', textAlign: 'right' }}>{occupiedRooms} ocupadas de {totalRooms}</span>
             </div>
           </div>
 
@@ -194,7 +232,10 @@ export default function AdminDashboard({
             {/* Chart: Ingresos estimados */}
             <div className="dash-card">
               <div className="dash-card-header">
-                <h3>Ingresos estimados (S/.)</h3>
+                <h3>Ingresos acumulados (S/.)</h3>
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#059669' }}>
+                  Total: S/ {totalRevenue.toFixed(2)}
+                </span>
               </div>
               <LineChartSvg />
             </div>
@@ -208,7 +249,7 @@ export default function AdminDashboard({
                 </span>
               </div>
 
-              <div className="table-responsive">
+              <div className="table-responsive" style={{ maxHeight: '300px', overflowY: 'auto' }}>
                 <table className="dash-table">
                   <thead>
                     <tr>
@@ -219,13 +260,13 @@ export default function AdminDashboard({
                     </tr>
                   </thead>
                   <tbody>
-                    {safeReservations.slice(0, 5).map((res) => (
+                    {safeReservations.slice(0, 8).map((res) => (
                       <tr key={res.id}>
                         <td style={{ fontWeight: '600' }}>{res.huesped}</td>
-                        <td>{res.habitacion}</td>
+                        <td>Hab. {res.habitacion}</td>
                         <td>{res.checkInDisplay || res.checkIn}</td>
                         <td>
-                          <span className={`badge-status ${String(res.estado || '').toLowerCase().replace('-', '')}`}>
+                          <span className={`badge-status ${String(res.estado || '').toLowerCase().replace(/[\s-]/g, '')}`}>
                             {res.estado}
                           </span>
                         </td>
@@ -270,6 +311,8 @@ export default function AdminDashboard({
                   <option value="Confirmada">Confirmadas</option>
                   <option value="Pendiente">Pendientes</option>
                   <option value="Check-in">Check-in</option>
+                  <option value="Finalizada">Finalizadas</option>
+                  <option value="Cancelada">Canceladas</option>
                 </select>
               </div>
 
@@ -287,7 +330,7 @@ export default function AdminDashboard({
 
           {/* Table */}
           <div className="dash-card">
-            <div className="table-responsive">
+            <div className="table-responsive" style={{ maxHeight: '420px', overflowY: 'auto' }}>
               <table className="dash-table">
                 <thead>
                   <tr>
@@ -305,11 +348,11 @@ export default function AdminDashboard({
                     <tr key={res.id}>
                       <td style={{ color: '#64748b', fontWeight: '500' }}>{res.idDisplay || res.codigo}</td>
                       <td style={{ fontWeight: '600' }}>{res.huesped}</td>
-                      <td>{res.habitacion}</td>
+                      <td>Hab. {res.habitacion}</td>
                       <td>{res.checkInDisplay || res.checkIn}</td>
                       <td>{res.checkOutDisplay || res.checkOut}</td>
                       <td>
-                        <span className={`badge-status ${String(res.estado || '').toLowerCase().replace('-', '')}`}>
+                        <span className={`badge-status ${String(res.estado || '').toLowerCase().replace(/[\s-]/g, '')}`}>
                           {res.estado}
                         </span>
                       </td>
@@ -324,14 +367,16 @@ export default function AdminDashboard({
                           </button>
                           <button 
                             className="btn-action-icon" 
-                            title="Editar"
-                            onClick={() => handleViewReservation(res)}
+                            title={res.puedeEditar ? 'Editar' : (res.motivoNoEditable || 'No se puede editar')}
+                            style={res.puedeEditar ? undefined : { opacity: 0.35, cursor: 'not-allowed' }}
+                            onClick={() => res.puedeEditar ? setReservaEnEdicion(res) : alert(res.motivoNoEditable || 'Esta reserva ya no se puede editar.')}
                           >
                             <Edit2 size={17} />
                           </button>
                           <button 
                             className="btn-action-icon delete" 
-                            title="Eliminar"
+                            title={res.puedeCancelar ? 'Cancelar reserva' : (res.motivoNoCancelable || 'No se puede cancelar')}
+                            style={res.puedeCancelar ? undefined : { opacity: 0.35, cursor: 'not-allowed' }}
                             onClick={() => handleDeleteReservation(res.id)}
                           >
                             <Trash2 size={17} />
@@ -384,7 +429,7 @@ export default function AdminDashboard({
 
           {/* Rooms Table */}
           <div className="dash-card">
-            <div className="table-responsive">
+            <div className="table-responsive" style={{ maxHeight: '420px', overflowY: 'auto' }}>
               <table className="dash-table">
                 <thead>
                   <tr>
@@ -543,6 +588,14 @@ export default function AdminDashboard({
         isOpen={isGuestModalOpen}
         onClose={() => setIsGuestModalOpen(false)}
         reservation={selectedReservation}
+      />
+
+      <EditReservationModal
+        isOpen={!!reservaEnEdicion}
+        onClose={() => setReservaEnEdicion(null)}
+        reservation={reservaEnEdicion}
+        rooms={rooms}
+        onSave={acciones.editarReserva}
       />
     </div>
   );

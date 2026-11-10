@@ -1,5 +1,6 @@
 package com.wimbledon.backend.controllers;
 
+import com.wimbledon.backend.services.TransicionInvalidaException;
 import com.wimbledon.backend.entities.Reserva;
 import com.wimbledon.backend.enums.EstadoReserva;
 import com.wimbledon.backend.services.ReservaService;
@@ -48,6 +49,8 @@ public class ReservaController {
         try {
             Reserva actualizada = reservaService.actualizarReserva(id, datos);
             return ResponseEntity.ok(actualizada);
+        } catch (TransicionInvalidaException e) {
+            return ResponseEntity.status(409).body(e.getMessage());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -60,6 +63,25 @@ public class ReservaController {
             EstadoReserva estado = EstadoReserva.valueOf(nuevoEstadoStr.toUpperCase());
             Reserva actualizada = reservaService.cambiarEstado(id, estado);
             return ResponseEntity.ok(actualizada);
+        } catch (TransicionInvalidaException e) {
+            return ResponseEntity.status(409).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    /** Extiende una reserva en CHECKIN: body {"horas": 1, "monto": 20.00} (monto opcional). */
+    @PostMapping("/{id}/extender")
+    public ResponseEntity<?> extenderReserva(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        try {
+            int horas = Integer.parseInt(String.valueOf(body.get("horas")));
+            Object m = body.get("monto");
+            java.math.BigDecimal monto = (m == null || String.valueOf(m).isBlank()) ? null : new java.math.BigDecimal(String.valueOf(m));
+            return ResponseEntity.ok(reservaService.extenderReserva(id, horas, monto));
+        } catch (TransicionInvalidaException e) {
+            return ResponseEntity.status(409).body(e.getMessage());
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body("Indica las horas de extensión (número entero).");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
