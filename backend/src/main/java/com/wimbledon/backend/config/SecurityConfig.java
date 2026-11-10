@@ -57,6 +57,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/me").authenticated()
 
                 // Parte pública de la web: ver habitaciones, reservar en línea y reportar soporte
+                // (el reporte público exige documento de un huésped con reserva vigente: lo valida SoporteService)
                 .requestMatchers(HttpMethod.GET, "/api/v1/habitaciones", "/api/v1/habitaciones/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/reservas").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/soporte").permitAll()

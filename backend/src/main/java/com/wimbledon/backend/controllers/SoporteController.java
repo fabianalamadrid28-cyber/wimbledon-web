@@ -5,6 +5,8 @@ import com.wimbledon.backend.dto.SoporteReporteResponse;
 import com.wimbledon.backend.services.SoporteService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,11 +28,18 @@ public class SoporteController {
         return service.listar();
     }
 
-    /** Crea un reporte desde el sitio público o desde el panel de limpieza. */
+    /**
+     * Crea un reporte. Con sesión de empleado se acepta tal cual; desde el sitio público solo si
+     * el documento corresponde a un huésped con reserva vigente en esa habitación.
+     */
     @PostMapping
-    public ResponseEntity<?> crear(@RequestBody SoporteReporteRequest body) {
+    public ResponseEntity<?> crear(@RequestBody SoporteReporteRequest body, Authentication authentication) {
+        boolean esPersonal = authentication != null && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken);
         try {
-            return ResponseEntity.status(HttpStatus.CREATED).body(service.crear(body));
+            return ResponseEntity.status(HttpStatus.CREATED).body(service.crear(body, esPersonal));
+        } catch (SoporteService.NoAutorizadoException ex) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("mensaje", ex.getMessage()));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("mensaje", ex.getMessage()));
         }
