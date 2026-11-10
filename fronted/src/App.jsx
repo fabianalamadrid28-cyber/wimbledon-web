@@ -557,95 +557,190 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
         </div>
       </section>
 
-      {/* 4. SECCIÓN HABITACIONES CON CALENDARIO INTERACTIVO Y ELECCIÓN DE TARIFAS */}
+      {/* 4. SECCIÓN HABITACIONES EN TIPO CARTAS CON ELECCIÓN DE TARIFAS */}
       <section className="rooms-custom-section" id="habitaciones">
-        <div className="section-header-text">
-          <span className="section-tagline">ALOJAMIENTOS DISPONIBLES</span>
-          <h2>Selecciona tu Suite y Tarifa</h2>
-          <p className="section-subtitle">Elige la modalidad que prefieras: 6 horas, 12 horas o pernocte completo con reserva inmediata.</p>
-        </div>
+        <div className="max-container">
+          <div className="section-header-text">
+            <span className="section-tagline">ALOJAMIENTOS DISPONIBLES</span>
+            <h2 className="section-title">Selecciona tu Suite y Tarifa</h2>
+            <p className="section-subtitle">Elige la modalidad que prefieras: 6 horas, 12 horas o pernocte completo con reserva inmediata.</p>
+          </div>
 
-        <div className="rooms-compact-list">
-          {tiposHabitaciones.slice(0, 3).map((room) => (
-            <div key={room.id} className="room-row-item">
-              <div className="room-left-side">
-                <div className="room-compact-img-box">
-                  <img src={room.img} alt={room.nombre} />
-                </div>
-                <div>
-                  <h3 style={{ margin: 0 }}>{room.nombre}</h3>
-                  <span style={{ fontSize: '12px', color: '#D4AF37', fontWeight: 600 }}>{room.desde}</span>
-                </div>
-              </div>
-              <div className="room-right-side" style={{ display: 'flex', gap: '8px' }}>
-                <button 
-                  className="btn-view-rates-compact" 
-                  onClick={() => setCalendarioActivo(calendarioActivo === room.id ? null : room.id)}
-                >
-                  {calendarioActivo === room.id ? 'Ocultar tarifas' : 'Ver las tarifas y fechas'}
-                </button>
-                <button 
-                  className="btn-solid-gold"
-                  style={{ padding: '0.5rem 1rem', fontSize: '0.75rem', borderRadius: '2px' }}
-                  onClick={() => handleOpenBooking({ room })}
-                >
-                  Reservar Suite
-                </button>
-              </div>
-
-              {calendarioActivo === room.id && (<RoomRatesPanel room={room} selectedDate={diaSeleccionadoCal} onSelectDate={setDiaSeleccionadoCal} onBook={handleOpenBooking} />)}
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* BOTÓN: VER TODOS LOS TIPOS DE HABITACIONES */}
-      <div className="view-rooms-container">
-        <button className="btn-outline-gold" onClick={() => setVerTodasHab(!verTodasHab)} aria-expanded={verTodasHab}>
-          {verTodasHab ? 'Ocultar tipos de habitaciones' : 'Ver todos los tipos de habitaciones'}
-        </button>
-
-        {verTodasHab && (
-          <div className="menu-grid max-container rooms-grid" style={{ marginTop: '2rem' }}>
-            {tiposHabitaciones.map((t) => (
-              <article key={t.id} className="menu-card room-card">
-                <div className="media"><Img src={t.img} alt={t.nombre} /></div>
-                <div className="menu-card-body">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '12px', marginBottom: '4px' }}>
-                    <span style={{
-                     display: 'block',
-                     fontSize: '10px',
-                     color: '#D4AF37',
-                     letterSpacing: '1px',
-                     fontWeight: 600,
-                     marginBottom: '5px'
-}}>
-  PISO {t.piso}
-</span>
-                    <h3 className="card-title" style={{ margin: 0 }}>{t.nombre}</h3>
-                    <span className="price-tag">Desde {t.precioExacto}</span>
+          <div className="rooms-grid">
+            {(verTodasHab ? tiposHabitaciones : tiposHabitaciones.slice(0, 3)).map((room) => (
+              <article key={room.id} className={`room-card ${calendarioActivo === room.id ? 'active' : ''}`}>
+                <div className="media"><Img src={room.img} alt={room.nombre} /></div>
+                <div className="room-card-body">
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px', gap: '8px' }}>
+                    <h3 className="card-title" style={{ margin: 0 }}>{room.nombre}</h3>
+                    <span className="price-tag">Desde {room.desde}</span>
                   </div>
-                  <p className="card-desc">{t.intro}</p>
-                  <div className="room-preview">
-                    <span className="room-preview-label">Incluye</span>
-                    <span className="room-preview-items">
-                      {t.equipamiento.slice(0, 3).join(' · ')}{t.equipamiento.length > 3 ? ' · Y más' : ''}
-                    </span>
-                  </div>
-
-                  <div className="room-action-row">
-                    <button
-                      className="btn-view-rates-compact"
-                      aria-expanded={calendarioActivo === t.id}
-                      onClick={() => setCalendarioActivo(calendarioActivo === t.id ? null : t.id)}
+                  <p className="card-desc">{room.desc}</p>
+                  <div className="room-card-actions">
+                    <button 
+                      className="btn-view-rates-compact" 
+                      onClick={() => setCalendarioActivo(calendarioActivo === room.id ? null : room.id)}
                     >
-                      {calendarioActivo === t.id ? 'Ocultar tarifas' : 'Ver las tarifas y fechas'}
+                      {calendarioActivo === room.id ? 'Ocultar tarifas' : 'Ver tarifas'}
                     </button>
-                    <button
+                    <button 
                       className="btn-solid-gold"
-                      onClick={() => handleOpenBooking({ room: t })}
+                      onClick={() => handleOpenBooking({ room })}
                     >
                       Reservar Suite
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="view-rooms-container" style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
+            <button className="btn-outline-gold" onClick={() => setVerTodasHab(!verTodasHab)}>
+              {verTodasHab ? 'Ocultar otras suites' : 'Ver todos los tipos de habitaciones'}
+            </button>
+          </div>
+
+          {/* Desplegable interactivo de Calendario y Tarifas por Bloques */}
+          {calendarioActivo && (() => {
+            const activeRoom = tiposHabitaciones.find((r) => r.id === calendarioActivo);
+            if (!activeRoom) return null;
+
+            return (
+              <div className="calendar-dropdown-box" style={{ marginBottom: '2.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+                  <div>
+                    <span style={{ fontSize: '11px', color: '#D4AF37', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.08em' }}>TARIFAS Y FECHAS DISPONIBLES</span>
+                    <h3 style={{ margin: '4px 0 0 0', color: '#FFFFFF', fontFamily: 'var(--font-serif)', fontSize: '1.25rem' }}>{activeRoom.nombre}</h3>
+                  </div>
+                  <button 
+                    className="btn-view-rates-compact" 
+                    onClick={() => setCalendarioActivo(null)}
+                  >
+                    ✕ Ocultar tarifas
+                  </button>
+                </div>
+
+                <div className="calendars-flex-container">
+                  <div className="month-box">
+                    <h4>Octubre 2026</h4>
+                    <div className="calendar-grid-header">
+                      <span>Do</span><span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sá</span>
+                    </div>
+                    <div className="calendar-days-grid">
+                      <span></span><span></span><span></span><span></span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('01/10/2026')}>1</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('02/10/2026')}>2</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('03/10/2026')}>3</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('04/10/2026')}>4</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('05/10/2026')}>5</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('06/10/2026')}>6</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('07/10/2026')}>7</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('08/10/2026')}>8</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('09/10/2026')}>9</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('10/10/2026')}>10</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('11/10/2026')}>11</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('12/10/2026')}>12</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('13/10/2026')}>13</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('14/10/2026')}>14</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('15/10/2026')}>15</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('16/10/2026')}>16</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('17/10/2026')}>17</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('18/10/2026')}>18</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('19/10/2026')}>19</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('20/10/2026')}>20</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('21/10/2026')}>21</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('22/10/2026')}>22</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('23/10/2026')}>23</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('24/10/2026')}>24</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('25/10/2026')}>25</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('26/10/2026')}>26</span>
+                      <span className="day today" onClick={() => setDiaSeleccionadoCal('29/10/2026')}>29</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('30/10/2026')}>30</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('31/10/2026')}>31</span>
+                    </div>
+                  </div>
+
+                  <div className="month-box">
+                    <h4>Noviembre 2026</h4>
+                    <div className="calendar-grid-header">
+                      <span>Do</span><span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sá</span>
+                    </div>
+                    <div className="calendar-days-grid">
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('01/11/2026')}>1</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('02/11/2026')}>2</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('03/11/2026')}>3</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('04/11/2026')}>4</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('05/11/2026')}>5</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('06/11/2026')}>6</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('07/11/2026')}>7</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('08/11/2026')}>8</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('09/11/2026')}>9</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('10/11/2026')}>10</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('11/11/2026')}>11</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('12/11/2026')}>12</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('13/11/2026')}>13</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('14/11/2026')}>14</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('15/11/2026')}>15</span>
+                    </div>
+                  </div>
+                </div>
+
+                {diaSeleccionadoCal && (
+                  <div className="calendar-action-banner">
+                    <div>
+                      <span style={{ fontSize: '11px', color: '#D4AF37', fontWeight: 'bold', textTransform: 'uppercase' }}>FECHA SELECCIONADA</span>
+                      <div style={{ color: '#ffffff', fontWeight: 600 }}>Día {diaSeleccionadoCal} en {activeRoom.nombre}</div>
+                    </div>
+                    <button 
+                      className="btn-book-rate"
+                      onClick={() => handleOpenBooking({ room: activeRoom, date: diaSeleccionadoCal.split('/').reverse().join('-') })}
+                    >
+                      Reservar para esta Fecha <ArrowRight size={14} />
+                    </button>
+                  </div>
+                )}
+
+                <div className="rates-block-options">
+                  <div className="rate-option-card">
+                    <div className="rate-option-header">
+                      <span className="rate-option-name">Bloque 6 Horas</span>
+                      <span className="rate-option-price">{activeRoom.desde}</span>
+                    </div>
+                    <p className="rate-option-desc">Ideal para una estadía corta y reconfortante. Incluye amenidades y cochera.</p>
+                    <button 
+                      className="btn-book-rate"
+                      onClick={() => handleOpenBooking({ room: activeRoom, rate: '6 HORAS' })}
+                    >
+                      Reservar Tarifa (6h)
+                    </button>
+                  </div>
+
+                  <div className="rate-option-card">
+                    <div className="rate-option-header">
+                      <span className="rate-option-name">Bloque 12 Horas</span>
+                      <span className="rate-option-price">S/ {parseInt(activeRoom.desde.replace('S/ ', '')) + 50}</span>
+                    </div>
+                    <p className="rate-option-desc">Mediodía de descanso pleno con room service y late check-out disponible.</p>
+                    <button 
+                      className="btn-book-rate"
+                      onClick={() => handleOpenBooking({ room: activeRoom, rate: '12 HORAS' })}
+                    >
+                      Reservar Tarifa (12h)
+                    </button>
+                  </div>
+
+                  <div className="rate-option-card">
+                    <div className="rate-option-header">
+                      <span className="rate-option-name">Pernocte Completo</span>
+                      <span className="rate-option-price">S/ {parseInt(activeRoom.desde.replace('S/ ', '')) + 90}</span>
+                    </div>
+                    <p className="rate-option-desc">Noche completa de descanso ininterrumpido hasta el mediodía siguiente.</p>
+                    <button 
+                      className="btn-book-rate"
+                      onClick={() => handleOpenBooking({ room: activeRoom, rate: 'PERNOCTE' })}
+                    >
+                      Reservar Pernocte
                     </button>
                   </div>
 
@@ -681,11 +776,11 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
                     </div>
                   )}
                 </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </div>
+              </div>
+            );
+          })()}
+        </div>
+      </section>
 
       {/* CARTA DEL MENÚ (CON OPCIÓN DE DESPLIEGUE Y PROMOCIONES) */}
       <section className="menu-section" id="carta">
