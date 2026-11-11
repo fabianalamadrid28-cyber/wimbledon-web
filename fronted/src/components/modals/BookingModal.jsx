@@ -3,6 +3,7 @@ import { X, Calendar, Clock, User, Phone, Mail, FileText, Sparkles, Check, Gift,
 import PaymentMethodSelector from './PaymentMethodSelector';
 import { getMetodoPago, REGEX_NUMERO_OPERACION } from '../../data/pagos';
 import { PISOS_INFO, getTematicasPorPiso, asignarHabitacionAutomatica } from '../../services/api';
+import { BLOQUES, calcularPrecioBloque } from '../../services/precios';
 
 export const FESTIVIDAD_PACKAGES = [
   { id: 'sanvalentin', nombre: 'San Valentín Inolvidable', precio: 299.00, desc: 'Pétalos, espumante Chandon, fresas con chocolate y late check-out.' },
@@ -156,13 +157,8 @@ export default function BookingModal({
     }
   };
 
-  // Cálculo de tarifa base según bloque
-  let basePrice = currentRoom.precioBloque || 125.00;
-  if (selectedBloque === '6 HORAS') {
-    basePrice = Math.round(basePrice * 0.65);
-  } else if (selectedBloque === '12 HORAS') {
-    basePrice = Math.round(basePrice * 0.85);
-  }
+  // Tarifa de la modalidad elegida: precio base (6 h) + recargo de 12 h / pernocte
+  const basePrice = calcularPrecioBloque(currentRoom.precioBloque || 125.00, selectedBloque);
 
   // Costo paquete festividad
   const activePackage = FESTIVIDAD_PACKAGES.find(p => p.id === selectedPackageId);
@@ -417,12 +413,14 @@ export default function BookingModal({
                   onChange={(e) => setSelectedBloque(e.target.value)}
                   style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', background: '#1e293b', border: '1px solid #334155', color: '#ffffff', fontSize: '13px' }}
                 >
-                  <option value="6 HORAS">Bloque 6 Horas</option>
-                  <option value="12 HORAS">Bloque 12 Horas</option>
-                  <option value="PERNOCTE">Pernocte / 24 Horas</option>
+                  {BLOQUES.map((bloque) => (
+                    <option key={bloque.id} value={bloque.id}>
+                      {bloque.nombre} (S/ {calcularPrecioBloque(currentRoom.precioBloque || 125.00, bloque.id).toFixed(2)})
+                    </option>
+                  ))}
                 </select>
                 <span style={{ fontSize: '11px', color: '#38bdf8', marginTop: '3px', display: 'block' }}>
-                  Tarifa base estimada: S/ {basePrice.toFixed(2)}
+                  Tarifa de la modalidad seleccionada: S/ {basePrice.toFixed(2)}
                 </span>
               </div>
             </div>
