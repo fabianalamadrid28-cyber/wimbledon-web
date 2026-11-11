@@ -30,6 +30,7 @@ import CheckInValidationModal from './components/modals/CheckInValidationModal';
 import MenuDetailModal from './components/modals/MenuDetailModal';
 import EfectosNavidad from './components/common/EfectosNavidad';
 import RoomRatesPanel from './components/RoomRatesPanel';
+import { calcularPrecioBloque, precioDesdeTexto, formatearSoles } from './services/precios';
 import SoporteForm from './components/SoporteForm';
 import FloatingSupportModal from './components/modals/FloatingSupportModal';
 import HABITACIONES_REALES from './data/habitaciones.json';
@@ -705,7 +706,7 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
                   <div className="rate-option-card">
                     <div className="rate-option-header">
                       <span className="rate-option-name">Bloque 6 Horas</span>
-                      <span className="rate-option-price">{activeRoom.desde}</span>
+                      <span className="rate-option-price">{formatearSoles(calcularPrecioBloque(precioDesdeTexto(activeRoom.desde), '6 HORAS'))}</span>
                     </div>
                     <p className="rate-option-desc">Ideal para una estadía corta y reconfortante. Incluye amenidades y cochera.</p>
                     <button 
@@ -719,7 +720,7 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
                   <div className="rate-option-card">
                     <div className="rate-option-header">
                       <span className="rate-option-name">Bloque 12 Horas</span>
-                      <span className="rate-option-price">S/ {parseInt(activeRoom.desde.replace('S/ ', '')) + 50}</span>
+                      <span className="rate-option-price">{formatearSoles(calcularPrecioBloque(precioDesdeTexto(activeRoom.desde), '12 HORAS'))}</span>
                     </div>
                     <p className="rate-option-desc">Mediodía de descanso pleno con room service y late check-out disponible.</p>
                     <button 
@@ -733,7 +734,7 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
                   <div className="rate-option-card">
                     <div className="rate-option-header">
                       <span className="rate-option-name">Pernocte Completo</span>
-                      <span className="rate-option-price">S/ {parseInt(activeRoom.desde.replace('S/ ', '')) + 90}</span>
+                      <span className="rate-option-price">{formatearSoles(calcularPrecioBloque(precioDesdeTexto(activeRoom.desde), 'PERNOCTE'))}</span>
                     </div>
                     <p className="rate-option-desc">Noche completa de descanso ininterrumpido hasta el mediodía siguiente.</p>
                     <button 

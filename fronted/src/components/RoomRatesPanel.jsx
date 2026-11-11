@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { calcularPrecioBloque, precioDesdeTexto, formatearSoles } from '../services/precios';
 
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const DIAS = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'];
@@ -23,7 +24,7 @@ export default function RoomRatesPanel({ room, selectedDate, onSelectDate, onBoo
   const leadingBlanks = new Date(month.getFullYear(), month.getMonth(), 1).getDay();
   const monthLabel = `${MESES[month.getMonth()]} ${month.getFullYear()}`;
 
-  const basePrice = Number(String(room.desde).replace('S/ ', ''));
+  const basePrice = precioDesdeTexto(room.desde);
   const selected = selectedDate ? atMidnight(dateFromKey(selectedDate)) : null;
   const isSelectable = (day) => new Date(month.getFullYear(), month.getMonth(), day) >= today;
 
@@ -119,7 +120,7 @@ export default function RoomRatesPanel({ room, selectedDate, onSelectDate, onBoo
         <div className="rate-option-card">
           <div className="rate-option-header">
             <span className="rate-option-name">Bloque 6 Horas</span>
-            <span className="rate-option-price">{room.desde}</span>
+            <span className="rate-option-price">{formatearSoles(calcularPrecioBloque(basePrice, '6 HORAS'))}</span>
           </div>
           <p className="rate-option-desc">Ideal para una estadía corta y reconfortante. Incluye amenidades y cochera.</p>
           <button
@@ -133,7 +134,7 @@ export default function RoomRatesPanel({ room, selectedDate, onSelectDate, onBoo
         <div className="rate-option-card">
           <div className="rate-option-header">
             <span className="rate-option-name">Bloque 12 Horas</span>
-            <span className="rate-option-price">S/ {(basePrice + 50).toFixed(2)}</span>
+            <span className="rate-option-price">{formatearSoles(calcularPrecioBloque(basePrice, '12 HORAS'))}</span>
           </div>
           <p className="rate-option-desc">Mediodía de descanso pleno con room service y late check-out disponible.</p>
           <button
@@ -147,7 +148,7 @@ export default function RoomRatesPanel({ room, selectedDate, onSelectDate, onBoo
         <div className="rate-option-card">
           <div className="rate-option-header">
             <span className="rate-option-name">Pernocte Completo</span>
-            <span className="rate-option-price">S/ {(basePrice + 90).toFixed(2)}</span>
+            <span className="rate-option-price">{formatearSoles(calcularPrecioBloque(basePrice, 'PERNOCTE'))}</span>
           </div>
           <p className="rate-option-desc">Noche completa de descanso ininterrumpido hasta el mediodía siguiente.</p>
           <button
