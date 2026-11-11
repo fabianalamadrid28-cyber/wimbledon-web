@@ -263,23 +263,6 @@ export default function ReceptionDashboard({
             <QrCode size={16} /> Validar Ingreso / QR
           </button>
 
-          {onOpenNewBooking && (
-            <button 
-              className="btn-solid-gold"
-              onClick={onOpenNewBooking}
-              style={{
-                padding: '8px 16px',
-                fontSize: '13px',
-                fontWeight: 600,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-            >
-              <PlusCircle size={16} /> Nueva Reserva
-            </button>
-          )}
-
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -1356,6 +1339,7 @@ export default function ReceptionDashboard({
           </div>
 
           {/* Desglose de Ocupación por Pisos */}
+          <div className="print-area">
           <div className="dash-card" style={{ padding: '20px' }}>
             <div className="dash-card-header" style={{ marginBottom: '16px' }}>
               <h3 style={{ fontSize: '16px' }}>Ocupación de los 3 Pisos del Hotel Wimbledon</h3>
@@ -1392,6 +1376,7 @@ export default function ReceptionDashboard({
                 );
               })}
             </div>
+          </div>
           </div>
         </div>
       )}

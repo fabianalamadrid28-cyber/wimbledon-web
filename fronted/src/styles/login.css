@@ -169,4 +169,17 @@
     print-color-adjust: exact !important;
     box-shadow: none !important;
   }
+
+  /* Con un área imprimible abierta, el resto de la pantalla no debe ocupar espacio:
+     visibility:hidden lo oculta pero conserva su altura y genera hojas en blanco. */
+  body:has(.print-area) *:not(:has(.print-area)):not(.print-area):not(.print-area *) {
+    display: none !important;
+  }
+
+  body:has(.print-area) *:has(.print-area) {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
 }

@@ -16,7 +16,7 @@ export default function PdfReportModal({ isOpen, onClose }) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-dialog pdf-viewer-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '850px' }}>
         {/* PDF Viewer Dark Toolbar */}
-        <div className="pdf-toolbar">
+        <div className="pdf-toolbar no-print">
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontWeight: '600' }}>reporte_hotel_wimbledon.pdf</span>
           </div>
@@ -40,6 +40,7 @@ export default function PdfReportModal({ isOpen, onClose }) {
 
         {/* PDF White Paper Page */}
         <div style={{ maxHeight: '80vh', overflowY: 'auto', padding: '20px', background: '#3b3e4a' }}>
+          <div className="print-area">
           <div className="pdf-sheet">
             {/* Header with Wimbledon Brand */}
             <div className="pdf-hotel-header">
@@ -145,6 +146,7 @@ export default function PdfReportModal({ isOpen, onClose }) {
             <div style={{ marginTop: '40px', paddingTop: '16px', borderTop: '1px solid #e2e8f0', textAlign: 'center', fontSize: '12px', color: '#94a3b8' }}>
               Generado el 31/07/2025 - Hotel Wimbledon · Sistema de Gestión Hotelera
             </div>
+          </div>
           </div>
         </div>
       </div>
