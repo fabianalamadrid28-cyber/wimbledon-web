@@ -29,7 +29,6 @@ import ReceiptModal from './components/modals/ReceiptModal';
 import CheckInValidationModal from './components/modals/CheckInValidationModal';
 import MenuDetailModal from './components/modals/MenuDetailModal';
 import EfectosNavidad from './components/common/EfectosNavidad';
-import RoomRatesPanel from './components/RoomRatesPanel';
 import { calcularPrecioBloque, precioDesdeTexto, formatearSoles } from './services/precios';
 import SoporteForm from './components/SoporteForm';
 import FloatingSupportModal from './components/modals/FloatingSupportModal';
@@ -264,7 +263,6 @@ function App() {
   // UI Landing
   const [isSticky, setIsSticky] = useState(false);
   const [verTodasHab, setVerTodasHab] = useState(false);
-const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null);
   const [faqAbierta, setFaqAbierta] = useState(0);
   const [calendarioActivo, setCalendarioActivo] = useState(null);
   const [diaSeleccionadoCal, setDiaSeleccionadoCal] = useState(null);
@@ -745,37 +743,6 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
                     </button>
                   </div>
 
-                  {calendarioActivo === t.id && (
-                    <RoomRatesPanel
-                      room={t}
-                      selectedDate={diaSeleccionadoCal}
-                      onSelectDate={setDiaSeleccionadoCal}
-                      onBook={handleOpenBooking}
-                    />
-                  )}
-
-                  <button
-                    className="btn-menu-expand"
-                    aria-expanded={contenidoHabitacionActivo === t.id}
-                    onClick={() => setContenidoHabitacionActivo(contenidoHabitacionActivo === t.id ? null : t.id)}
-                  >
-                    {contenidoHabitacionActivo === t.id ? 'Ocultar contenido' : 'Desplegar contenido'} {contenidoHabitacionActivo === t.id ? '↑' : '↓'}
-                  </button>
-
-                  {contenidoHabitacionActivo === t.id && (
-                    <div className="room-content-panel">
-                      <h4>Qué contiene</h4>
-                      <ul className="room-content-list">
-                        {t.equipamiento.map((item, index) => (
-                          <li key={`${t.id}-${index}`}>{item}</li>
-                        ))}
-                      </ul>
-                      <div className="room-content-meta">
-                        <span>{t.duracion.replace(/[()]/g, '')}</span>
-                        <span>IGV incluido</span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             );
