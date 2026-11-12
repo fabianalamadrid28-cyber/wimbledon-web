@@ -773,6 +773,15 @@ section[id] {
   font-weight: 700;
 }
 
+/* Evita que desaparezca el número cuando el día actual está seleccionado */
+.calendar-days-grid button.day.today.selected {
+  background-color: var(--gold-primary);
+  color: var(--bg-dark-absolute);
+  -webkit-text-fill-color: var(--bg-dark-absolute);
+  font-weight: 800;
+  outline: 2px solid var(--gold-primary);
+  outline-offset: -2px;
+}
 .calendar-footer-actions {
   margin-top: 1.5rem;
   text-align: center;
