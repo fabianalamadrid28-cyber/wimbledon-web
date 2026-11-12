@@ -444,7 +444,7 @@ function camposEdicion(item) {
     horaSalida: hhmm(item.horaSalidaProgramada),
     bloque: item.bloqueSeleccionado || '',
     notas: item.notasAdicionales || '',
-    puedeEditar: item.puedeEditar === true,
+    puedeEditar: item.puedeEditar !== false,
     motivoNoEditable: item.motivoNoEditable || null,
     puedeCancelar: item.puedeCancelar === true,
     motivoNoCancelable: item.motivoNoCancelable || null,
