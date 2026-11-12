@@ -29,7 +29,6 @@ import ReceiptModal from './components/modals/ReceiptModal';
 import CheckInValidationModal from './components/modals/CheckInValidationModal';
 import MenuDetailModal from './components/modals/MenuDetailModal';
 import EfectosNavidad from './components/common/EfectosNavidad';
-import RoomRatesPanel from './components/RoomRatesPanel';
 import { calcularPrecioBloque, precioDesdeTexto, formatearSoles } from './services/precios';
 import SoporteForm from './components/SoporteForm';
 import FloatingSupportModal from './components/modals/FloatingSupportModal';
@@ -264,7 +263,6 @@ function App() {
   // UI Landing
   const [isSticky, setIsSticky] = useState(false);
   const [verTodasHab, setVerTodasHab] = useState(false);
-const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null);
   const [faqAbierta, setFaqAbierta] = useState(0);
   const [calendarioActivo, setCalendarioActivo] = useState(null);
   const [diaSeleccionadoCal, setDiaSeleccionadoCal] = useState(null);
@@ -656,6 +654,8 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
                       <span className="day" onClick={() => setDiaSeleccionadoCal('24/10/2026')}>24</span>
                       <span className="day" onClick={() => setDiaSeleccionadoCal('25/10/2026')}>25</span>
                       <span className="day" onClick={() => setDiaSeleccionadoCal('26/10/2026')}>26</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('27/10/2026')}>27</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('28/10/2026')}>28</span>
                       <span className="day today" onClick={() => setDiaSeleccionadoCal('29/10/2026')}>29</span>
                       <span className="day" onClick={() => setDiaSeleccionadoCal('30/10/2026')}>30</span>
                       <span className="day" onClick={() => setDiaSeleccionadoCal('31/10/2026')}>31</span>
@@ -683,6 +683,21 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
                       <span className="day" onClick={() => setDiaSeleccionadoCal('13/11/2026')}>13</span>
                       <span className="day" onClick={() => setDiaSeleccionadoCal('14/11/2026')}>14</span>
                       <span className="day" onClick={() => setDiaSeleccionadoCal('15/11/2026')}>15</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('16/11/2026')}>16</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('17/11/2026')}>17</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('18/11/2026')}>18</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('19/11/2026')}>19</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('20/11/2026')}>20</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('21/11/2026')}>21</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('22/11/2026')}>22</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('23/11/2026')}>23</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('24/11/2026')}>24</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('25/11/2026')}>25</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('26/11/2026')}>26</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('27/11/2026')}>27</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('28/11/2026')}>28</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('29/11/2026')}>29</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('30/11/2026')}>30</span>
                     </div>
                   </div>
                 </div>
@@ -745,37 +760,6 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
                     </button>
                   </div>
 
-                  {calendarioActivo === t.id && (
-                    <RoomRatesPanel
-                      room={t}
-                      selectedDate={diaSeleccionadoCal}
-                      onSelectDate={setDiaSeleccionadoCal}
-                      onBook={handleOpenBooking}
-                    />
-                  )}
-
-                  <button
-                    className="btn-menu-expand"
-                    aria-expanded={contenidoHabitacionActivo === t.id}
-                    onClick={() => setContenidoHabitacionActivo(contenidoHabitacionActivo === t.id ? null : t.id)}
-                  >
-                    {contenidoHabitacionActivo === t.id ? 'Ocultar contenido' : 'Desplegar contenido'} {contenidoHabitacionActivo === t.id ? '↑' : '↓'}
-                  </button>
-
-                  {contenidoHabitacionActivo === t.id && (
-                    <div className="room-content-panel">
-                      <h4>Qué contiene</h4>
-                      <ul className="room-content-list">
-                        {t.equipamiento.map((item, index) => (
-                          <li key={`${t.id}-${index}`}>{item}</li>
-                        ))}
-                      </ul>
-                      <div className="room-content-meta">
-                        <span>{t.duracion.replace(/[()]/g, '')}</span>
-                        <span>IGV incluido</span>
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             );
