@@ -604,8 +604,11 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
 
           {/* Desplegable interactivo de Calendario y Tarifas por Bloques */}
           {calendarioActivo && (() => {
-            const activeRoom = tiposHabitaciones.find((r) => r.id === calendarioActivo);
-            if (!activeRoom) return null;
+             const activeRoom = tiposHabitaciones.find(
+             (r) => String(r.id) === String(calendarioActivo)
+              );
+
+             if (!activeRoom) return null;
 
             return (
               <div className="calendar-dropdown-box" style={{ marginBottom: '2.5rem' }}>
@@ -656,6 +659,8 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
                       <span className="day" onClick={() => setDiaSeleccionadoCal('24/10/2026')}>24</span>
                       <span className="day" onClick={() => setDiaSeleccionadoCal('25/10/2026')}>25</span>
                       <span className="day" onClick={() => setDiaSeleccionadoCal('26/10/2026')}>26</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('27/10/2026')}>27</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('28/10/2026')}>28</span>
                       <span className="day today" onClick={() => setDiaSeleccionadoCal('29/10/2026')}>29</span>
                       <span className="day" onClick={() => setDiaSeleccionadoCal('30/10/2026')}>30</span>
                       <span className="day" onClick={() => setDiaSeleccionadoCal('31/10/2026')}>31</span>
