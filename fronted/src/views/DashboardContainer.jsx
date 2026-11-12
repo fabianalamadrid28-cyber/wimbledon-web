@@ -4,9 +4,11 @@ import TopHeader from '../components/layout/TopHeader';
 import AdminDashboard from './admin/AdminDashboard';
 import ReceptionDashboard from './reception/ReceptionDashboard';
 import HousekeepingDashboard from './housekeeping/HousekeepingDashboard';
+import SoportePanel from './housekeeping/SoportePanel';
 import UsuariosManagement from './admin/UsuariosManagement';
 import { INITIAL_ROOMS, INITIAL_RESERVATIONS } from '../services/api';
 import { useEstadosEnVivo } from '../hooks/useEstadosEnVivo';
+import { useIncidenciasAdmin } from '../hooks/useIncidenciasAdmin';
 import CheckInValidationModal from '../components/modals/CheckInValidationModal';
 import BookingModal from '../components/modals/BookingModal';
 import ReceiptModal from '../components/modals/ReceiptModal';
@@ -96,6 +98,12 @@ export default function DashboardContainer({
     setReservations
   });
 
+  // Incidencias reportadas por clientes: llegan a administración (campanita + contador en el menú)
+  const { pendientes: incidenciasPendientes, recargar: recargarIncidencias } = useIncidenciasAdmin({
+    activo: currentRole === 'ADMIN',
+    onNueva: addNotification
+  });
+
   // Manejador de check-in sin contacto
   const handleValidateCheckInFromModal = (resId, details) => {
     acciones.cambiarEstadoReserva(resId, 'En Habitación');
@@ -173,6 +181,7 @@ export default function DashboardContainer({
         onLogout={onLogout}
         onGoToLanding={onGoToLanding}
         user={getUserProfile()}
+        badges={{ incidencias: incidenciasPendientes }}
       />
 
       {/* Main Panel */}
@@ -189,6 +198,7 @@ export default function DashboardContainer({
           onMarkAllRead={markAllNotificationsAsRead}
           onClearNotifications={clearNotifications}
           onOpenCheckInValidation={() => setIsValidationModalOpen(true)}
+          onOpenIncidencias={() => setCurrentTab('incidencias')}
         />
 
         {/* Status Bar */}
@@ -238,6 +248,10 @@ export default function DashboardContainer({
               setCurrentTab={setCurrentTab}
               onAddNotification={addNotification}
             />
+          )}
+
+          {currentRole === 'ADMIN' && currentTab === 'incidencias' && (
+            <SoportePanel modo="admin" rooms={rooms} onRevisado={recargarIncidencias} />
           )}
 
           {currentRole === 'ADMIN' && currentTab === 'usuarios' && <UsuariosManagement />}

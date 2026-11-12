@@ -15,11 +15,15 @@ import {
   ShieldCheck,
   Check,
   Layers,
-  Sparkle
+  Sparkle,
+  Timer
 } from 'lucide-react';
 import { api } from '../../services/api';
 import HousekeepingChecklistModal from '../../components/modals/HousekeepingChecklistModal';
 import SoportePanel from './SoportePanel';
+import TiemposLimpieza from '../../components/TiemposLimpieza';
+import { useAhora } from '../../hooks/useAhora';
+import { formatDuracion, segundosDesde } from '../../services/tiempos';
 
 export default function HousekeepingDashboard({
   rooms = [],
@@ -36,10 +40,17 @@ export default function HousekeepingDashboard({
   const [reportRoom, setReportRoom] = useState('');
 
   // Estado del verificador de checklist en la sección "Checklists de Aseo"
-  const pendingOrProcessRooms = rooms.filter(r => r.estado === 'LIMPIEZA_PENDIENTE' || r.estado === 'EN_PROCESO');
-  const [checklistActiveRoomId, setChecklistActiveRoomId] = useState(
-    pendingOrProcessRooms[0]?.id || rooms[0]?.id || null
-  );
+  // Solo se puede certificar una suite que esté EN_PROCESO (el servidor no admite pasar de otro estado a LISTA)
+  const roomsEnProceso = rooms.filter(r => r.estado === 'EN_PROCESO');
+  const [checklistActiveRoomId, setChecklistActiveRoomId] = useState(null);
+  const checklistRoomId = roomsEnProceso.some(r => r.id === checklistActiveRoomId)
+    ? checklistActiveRoomId
+    : (roomsEnProceso[0]?.id ?? null);
+
+  // Cronómetro en vivo y control de clics: un botón queda deshabilitado mientras el servidor responde
+  const ahora = useAhora(1000);
+  const [busy, setBusy] = useState({});
+  const [errorMsg, setErrorMsg] = useState('');
   const [checklistTasks, setChecklistTasks] = useState({
     sabanas: false,
     jacuzzi: false,
@@ -50,11 +61,26 @@ export default function HousekeepingDashboard({
   });
   const [checklistSuccessMsg, setChecklistSuccessMsg] = useState('');
 
-  // Transición: Iniciar Limpieza (moves to EN_PROCESO)
-  const handleStartCleaning = (roomId) => {
-    acciones.cambiarEstadoHabitacion(roomId, 'EN_PROCESO');
+  // Cambia el estado esperando la respuesta del servidor. Ignora clics repetidos sobre la misma habitación
+  // y muestra el motivo si el servidor rechaza el cambio.
+  const cambiarEstado = async (roomId, estado, observaciones) => {
+    if (busy[roomId]) return { ok: false };
+    setBusy(prev => ({ ...prev, [roomId]: true }));
+    setErrorMsg('');
+    try {
+      const res = await acciones.cambiarEstadoHabitacion(roomId, estado, observaciones);
+      if (!res.ok) setErrorMsg(res.error || 'No se pudo cambiar el estado de la habitación.');
+      return res;
+    } finally {
+      setBusy(prev => ({ ...prev, [roomId]: false }));
+    }
+  };
+
+  // Transición: Iniciar Limpieza (pasa a EN_PROCESO y arranca el cronómetro en el servidor)
+  const handleStartCleaning = async (roomId) => {
+    const res = await cambiarEstado(roomId, 'EN_PROCESO');
     const target = rooms.find(r => r.id === roomId);
-    if (onAddNotification && target) {
+    if (res.ok && onAddNotification && target) {
       onAddNotification({
         tipo: 'limpieza',
         titulo: 'Limpieza en Proceso',
@@ -69,17 +95,19 @@ export default function HousekeepingDashboard({
     setIsChecklistModalOpen(true);
   };
 
-  // Completar limpieza
-  const handleFinishCleaning = async (roomId) => {
-    await acciones.cambiarEstadoHabitacion(roomId, 'LISTA');
+  // Completar limpieza: pasa a LISTA, el servidor cierra el registro y calcula la demora
+  const handleFinishCleaning = async (roomId, observaciones) => {
     const target = rooms.find(r => r.id === roomId) || selectedRoom;
-    if (onAddNotification && target) {
+    const duracion = target ? formatDuracion(segundosDesde(target.limpiezaInicio)) : '';
+    const res = await cambiarEstado(roomId, 'LISTA', observaciones);
+    if (res.ok && onAddNotification && target) {
       onAddNotification({
         tipo: 'limpieza',
         titulo: 'Habitación Lista para Huéspedes',
-        mensaje: `Habitación ${target.numero} desinfectada y lista para nuevo check-in.`
+        mensaje: `Habitación ${target.numero} desinfectada y lista para nuevo check-in${duracion && duracion !== '—' ? ` (limpieza de ${duracion})` : ''}.`
       });
     }
+    return res;
   };
 
   // Abrir soporte técnico para una habitación
@@ -89,15 +117,15 @@ export default function HousekeepingDashboard({
   };
 
   // Marcar como sucia
-  const handleMarkAsDirty = (roomId) => {
-    acciones.cambiarEstadoHabitacion(roomId, 'LIMPIEZA_PENDIENTE');
-  };
+  const handleMarkAsDirty = (roomId) => cambiarEstado(roomId, 'LIMPIEZA_PENDIENTE');
 
   // Certificar desde la pestaña de Checklists
   const handleCertifyChecklist = async () => {
-    if (!checklistActiveRoomId) return;
-    await handleFinishCleaning(checklistActiveRoomId);
-    setChecklistSuccessMsg(`¡Habitación #${rooms.find(r => r.id === checklistActiveRoomId)?.numero || ''} certificada con éxito como LISTA!`);
+    if (!checklistRoomId) return;
+    const numero = rooms.find(r => r.id === checklistRoomId)?.numero || '';
+    const res = await handleFinishCleaning(checklistRoomId);
+    if (!res.ok) return; // el motivo ya se muestra arriba; no se anuncia un éxito falso
+    setChecklistSuccessMsg(`¡Habitación #${numero} certificada con éxito como LISTA!`);
     setChecklistTasks({
       sabanas: false,
       jacuzzi: false,
@@ -145,6 +173,7 @@ export default function HousekeepingDashboard({
             {currentTab === 'inicio' && 'Tablero ejecutivo de aseo y desinfección de suites.'}
             {currentTab === 'habitaciones' && 'Inventario completo de 150 habitaciones por pisos.'}
             {currentTab === 'checklists' && 'Protocolos oficiales y certificación de bioseguridad.'}
+            {currentTab === 'tiempos' && 'Cuánto demora cada limpieza y el promedio del turno.'}
           </p>
         </div>
         <div style={{
@@ -163,6 +192,13 @@ export default function HousekeepingDashboard({
           <span>Hoy, {new Date().toLocaleDateString('es-PE', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
         </div>
       </div>
+
+      {errorMsg && (
+        <div className="housekeeping-error" role="alert">
+          <span>{errorMsg}</span>
+          <button type="button" onClick={() => setErrorMsg('')} aria-label="Cerrar aviso">✕</button>
+        </div>
+      )}
 
       {/* ========================================================
           SECCIÓN 1: TABLERO DE ASEO (currentTab === 'inicio')
@@ -316,11 +352,18 @@ export default function HousekeepingDashboard({
                         {room.tieneCocheraDirecta && <span>🚗 Cochera Directa</span>}
                       </div>
 
+                      {isInProgress && (
+                        <div className="limpieza-timer-inline">
+                          <Timer size={13} /> En limpieza: {formatDuracion(segundosDesde(room.limpiezaInicio, ahora))}
+                        </div>
+                      )}
+
                       <div style={{ display: 'flex', gap: '8px', marginTop: 'auto', paddingTop: '4px' }}>
                         {isPending && (
                           <button 
                             className="btn-primary" 
                             style={{ flex: 1, padding: '7px 10px', fontSize: '12px', justifyContent: 'center' }}
+                            disabled={busy[room.id]}
                             onClick={() => handleStartCleaning(room.id)}
                           >
                             <Play size={13} /> Iniciar Limpieza
@@ -386,6 +429,14 @@ export default function HousekeepingDashboard({
                   onClick={() => setCurrentTab('checklists')}
                 >
                   <span>Protocolos y Checklists de Aseo</span>
+                  <ArrowRight size={14} />
+                </button>
+                <button 
+                  className="btn-secondary" 
+                  style={{ justifyContent: 'space-between', padding: '10px 14px', fontSize: '13px' }}
+                  onClick={() => setCurrentTab('tiempos')}
+                >
+                  <span>Tiempos de Limpieza</span>
                   <ArrowRight size={14} />
                 </button>
                 <button 
@@ -513,6 +564,11 @@ export default function HousekeepingDashboard({
                         {room.tienePoleDance && <span>💃 Pole Dance</span>}
                         {room.tieneCocheraDirecta && <span>🚗 Cochera</span>}
                       </div>
+                      {isInProgress && (
+                        <div className="limpieza-timer-inline" style={{ marginTop: '6px' }}>
+                          <Timer size={13} /> En limpieza: {formatDuracion(segundosDesde(room.limpiezaInicio, ahora))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Action Buttons */}
@@ -521,7 +577,8 @@ export default function HousekeepingDashboard({
                         <button 
                           className="btn-primary" 
                           style={{ flex: 1, padding: '8px 12px', fontSize: '12.5px', justifyContent: 'center' }}
-                          onClick={() => handleStartCleaning(room.id)}
+                          disabled={busy[room.id]}
+                            onClick={() => handleStartCleaning(room.id)}
                         >
                           <Play size={13} /> Iniciar Limpieza
                         </button>
@@ -541,6 +598,7 @@ export default function HousekeepingDashboard({
                         <button 
                           className="btn-secondary" 
                           style={{ flex: 1, padding: '8px 12px', fontSize: '12px', justifyContent: 'center' }}
+                          disabled={busy[room.id]}
                           onClick={() => handleMarkAsDirty(room.id)}
                         >
                           <RotateCcw size={13} /> Marcar por Limpiar
@@ -591,12 +649,16 @@ export default function HousekeepingDashboard({
               <select
                 className="filter-select"
                 style={{ width: '100%', padding: '10px 14px', fontSize: '13.5px' }}
-                value={checklistActiveRoomId || ''}
+                value={checklistRoomId || ''}
                 onChange={(e) => setChecklistActiveRoomId(Number(e.target.value))}
+                disabled={roomsEnProceso.length === 0}
               >
-                {rooms.map(r => (
+                {roomsEnProceso.length === 0 && (
+                  <option value="">No hay limpiezas en proceso: pulsa «Iniciar Limpieza» primero</option>
+                )}
+                {roomsEnProceso.map(r => (
                   <option key={r.id} value={r.id}>
-                    Habitación {r.numero} (Piso {r.piso}) · {r.nombreTema || r.tipo} · [{r.estado}]
+                    Habitación {r.numero} (Piso {r.piso}) · {r.nombreTema || r.tipo} · en limpieza {formatDuracion(segundosDesde(r.limpiezaInicio, ahora))}
                   </option>
                 ))}
               </select>
@@ -668,7 +730,7 @@ export default function HousekeepingDashboard({
                 background: Object.values(checklistTasks).every(Boolean) ? '#10b981' : '#94a3b8',
                 borderColor: Object.values(checklistTasks).every(Boolean) ? '#059669' : '#94a3b8'
               }}
-              disabled={!Object.values(checklistTasks).every(Boolean)}
+              disabled={!checklistRoomId || busy[checklistRoomId] || !Object.values(checklistTasks).every(Boolean)}
               onClick={handleCertifyChecklist}
             >
               <CheckCircle size={18} />
@@ -713,12 +775,18 @@ export default function HousekeepingDashboard({
         </div>
       )}
 
+      {/* ========================================================
+          SECCIÓN 4: TIEMPOS DE LIMPIEZA (currentTab === 'tiempos')
+      ======================================================== */}
+      {currentTab === 'tiempos' && <TiemposLimpieza rooms={rooms} />}
+
       {/* Modal de Finalización Rápida de Limpieza */}
       <HousekeepingChecklistModal
         isOpen={isChecklistModalOpen}
         onClose={() => setIsChecklistModalOpen(false)}
         room={selectedRoom}
         onComplete={handleFinishCleaning}
+        busy={Boolean(selectedRoom && busy[selectedRoom.id])}
       />
     </div>
   );

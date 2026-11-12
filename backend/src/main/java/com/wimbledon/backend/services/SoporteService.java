@@ -34,6 +34,22 @@ public class SoporteService {
                 .toList();
     }
 
+    /** Incidencias generadas por clientes que administración todavía no revisa. */
+    public List<SoporteReporteResponse> listarEscaladas() {
+        return repository.findByEscaladoAdminTrueAndRevisadoAdminFalseOrderByCreadoEnDesc()
+                .stream()
+                .map(SoporteReporteResponse::from)
+                .toList();
+    }
+
+    @Transactional
+    public SoporteReporteResponse marcarRevisado(Long id) {
+        ReporteSoporte entity = repository.findById(id)
+                .orElseThrow(() -> new ReporteNoEncontradoException(id));
+        entity.setRevisadoAdmin(true);
+        return SoporteReporteResponse.from(entity);
+    }
+
     @Transactional
     public SoporteReporteResponse crear(SoporteReporteRequest request, boolean esPersonal) {
         if (request == null) {
@@ -71,6 +87,7 @@ public class SoporteService {
                 .prioridad(parseEnum(PrioridadSoporte.class, prioridad, "prioridad"))
                 .descripcion(descripcion)
                 .estado(EstadoSoporte.PENDIENTE)
+                .escaladoAdmin(origenReporte == OrigenSoporte.CLIENTE) // lo reportado por clientes llega a administración
                 .build();
         return SoporteReporteResponse.from(repository.save(entity));
     }

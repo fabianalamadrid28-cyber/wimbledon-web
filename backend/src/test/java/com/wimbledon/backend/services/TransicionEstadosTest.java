@@ -25,6 +25,13 @@ class TransicionEstadosTest {
     }
 
     @Test
+    void habitacionListaSePuedeMarcarPorLimpiar() {
+        // Botón "Marcar por Limpiar": antes el servidor lo rechazaba y el panel se "bugeaba"
+        assertTrue(TransicionEstados.permitida(EstadoHabitacion.LISTA, EstadoHabitacion.LIMPIEZA_PENDIENTE));
+        assertTrue(TransicionEstados.permitida(EstadoHabitacion.DISPONIBLE, EstadoHabitacion.LIMPIEZA_PENDIENTE));
+    }
+
+    @Test
     void ocupadaNoPasaADisponibleSinLimpieza() {
         assertFalse(TransicionEstados.permitida(EstadoHabitacion.OCUPADA, EstadoHabitacion.DISPONIBLE));
     }

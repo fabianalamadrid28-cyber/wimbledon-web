@@ -6,13 +6,16 @@ import {
   CheckCircle2,
   Clock,
   Loader2,
-  Search
+  Search,
+  Eye,
+  BellRing
 } from 'lucide-react';
 import SoporteForm from '../../components/SoporteForm';
 import { api } from '../../services/api';
 
 const FILTROS = [
   { key: 'TODOS', label: 'Todos' },
+  { key: 'POR_REVISAR', label: 'Por revisar', soloAdmin: true },
   { key: 'PENDIENTE', label: 'Pendientes' },
   { key: 'EN_ATENCION', label: 'En atención' },
   { key: 'RESUELTOS', label: 'Resueltos' },
@@ -39,7 +42,15 @@ function fmtFecha(value) {
   return date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-export default function SoportePanel({ rooms = [], initialRoom = '' }) {
+const INTERVALO_MS = 10000;
+
+/**
+ * Bandeja de reportes de soporte.
+ * - modo "limpieza": el personal registra averías y ve todos los reportes.
+ * - modo "admin": administración ve las incidencias de clientes (escaladas) y las marca como revisadas.
+ */
+export default function SoportePanel({ rooms = [], initialRoom = '', modo = 'limpieza', onRevisado }) {
+  const esAdmin = modo === 'admin';
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -47,8 +58,8 @@ export default function SoportePanel({ rooms = [], initialRoom = '' }) {
   const [filtro, setFiltro] = useState('TODOS');
   const [search, setSearch] = useState('');
 
-  async function reload() {
-    setLoading(true);
+  async function reload({ silent = false } = {}) {
+    if (!silent) setLoading(true);
     try {
       const data = await api.listarReportesSoporte();
       setReports(Array.isArray(data) ? data : []);
@@ -56,17 +67,41 @@ export default function SoportePanel({ rooms = [], initialRoom = '' }) {
     } catch (err) {
       setError(err.message || 'No se pudieron cargar los reportes de soporte.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }
 
-  useEffect(() => { reload(); }, []);
+  // La bandeja se actualiza sola: las incidencias nuevas llegan sin tener que pulsar «Actualizar»
+  useEffect(() => {
+    reload();
+    const id = setInterval(() => { if (!document.hidden) reload({ silent: true }); }, INTERVALO_MS);
+    return () => clearInterval(id);
+  }, []);
+
+  async function marcarRevisado(id) {
+    setUpdating(true);
+    try {
+      await api.marcarIncidenciaRevisada(id);
+      await reload({ silent: true });
+      onRevisado?.();
+    } catch (err) {
+      setError(err.message || 'No se pudo marcar la incidencia como revisada.');
+    } finally {
+      setUpdating(false);
+    }
+  }
 
   async function moverEstado(id, estado) {
     setUpdating(true);
     try {
       await api.actualizarEstadoReporteSoporte(id, estado);
-      await reload();
+      // Si administración atiende una incidencia de cliente, queda revisada
+      const reporte = reports.find((r) => r.id === id);
+      if (esAdmin && reporte?.escaladoAdmin && !reporte.revisadoAdmin) {
+        await api.marcarIncidenciaRevisada(id);
+        onRevisado?.();
+      }
+      await reload({ silent: true });
     } catch (err) {
       setError(err.message || 'No se pudo actualizar el estado.');
     } finally {
@@ -79,6 +114,7 @@ export default function SoportePanel({ rooms = [], initialRoom = '' }) {
     return reports.filter((reporte) => {
       if (filtro === 'CLIENTE' && reporte.origen !== 'CLIENTE') return false;
       if (filtro === 'LIMPIEZA' && reporte.origen !== 'LIMPIEZA') return false;
+      if (filtro === 'POR_REVISAR' && !(reporte.escaladoAdmin && !reporte.revisadoAdmin)) return false;
       if (filtro === 'PENDIENTE' && reporte.estado !== 'PENDIENTE') return false;
       if (filtro === 'EN_ATENCION' && reporte.estado !== 'EN_ATENCION') return false;
       if (filtro === 'RESUELTOS' && reporte.estado !== 'RESUELTO') return false;
@@ -91,13 +127,21 @@ export default function SoportePanel({ rooms = [], initialRoom = '' }) {
   const pendientes = reports.filter((r) => r.estado === 'PENDIENTE').length;
   const enAtencion = reports.filter((r) => r.estado === 'EN_ATENCION').length;
   const resueltos = reports.filter((r) => r.estado === 'RESUELTO').length;
+  const porRevisar = reports.filter((r) => r.escaladoAdmin && !r.revisadoAdmin).length;
 
   return (
     <div className="soporte-panel">
       <div className="dash-page-header">
         <div>
-          <h1><Wrench size={24} style={{ verticalAlign: '-3px', marginRight: '8px' }} />Soporte de habitaciones</h1>
-          <p>Bandeja compartida con clientes y personal de limpieza para atender inconvenientes en las habitaciones.</p>
+          <h1>
+            {esAdmin
+              ? <BellRing size={24} style={{ verticalAlign: '-3px', marginRight: '8px' }} />
+              : <Wrench size={24} style={{ verticalAlign: '-3px', marginRight: '8px' }} />}
+            {esAdmin ? 'Incidencias de clientes' : 'Soporte de habitaciones'}
+          </h1>
+          <p>{esAdmin
+            ? 'Todo lo que reporta un cliente llega aquí para que administración lo revise y haga seguimiento.'
+            : 'Bandeja compartida con clientes y personal de limpieza para atender inconvenientes en las habitaciones.'}</p>
         </div>
         <button className="btn-secondary" onClick={reload} disabled={loading} aria-label="Actualizar lista">
           <RefreshCw size={16} className={loading ? 'spin' : ''} /> Actualizar
@@ -119,16 +163,25 @@ export default function SoportePanel({ rooms = [], initialRoom = '' }) {
         </div>
       </div>
 
-      <div className="soporte-layout">
-        <section className="dash-card soporte-form-shell">
-          <SoporteForm
-            origen="LIMPIEZA"
-            rooms={rooms}
-            initialRoom={initialRoom}
-            compact
-            onCreated={() => reload()}
-          />
-        </section>
+      {esAdmin && porRevisar > 0 && (
+        <div className="soporte-aviso-admin" role="status">
+          <BellRing size={18} />
+          <span>Hay <strong>{porRevisar}</strong> incidencia{porRevisar === 1 ? '' : 's'} de clientes por revisar.</span>
+        </div>
+      )}
+
+      <div className="soporte-layout" style={esAdmin ? { gridTemplateColumns: '1fr' } : undefined}>
+        {!esAdmin && (
+          <section className="dash-card soporte-form-shell">
+            <SoporteForm
+              origen="LIMPIEZA"
+              rooms={rooms}
+              initialRoom={initialRoom}
+              compact
+              onCreated={() => reload({ silent: true })}
+            />
+          </section>
+        )}
 
         <section className="dash-card soporte-list-shell">
           <div className="soporte-list-header">
@@ -146,7 +199,7 @@ export default function SoportePanel({ rooms = [], initialRoom = '' }) {
           </div>
 
           <div className="soporte-filters" role="tablist" aria-label="Filtrar reportes">
-            {FILTROS.map((f) => (
+            {FILTROS.filter((f) => !f.soloAdmin || esAdmin).map((f) => (
               <button
                 key={f.key}
                 role="tab"
@@ -169,7 +222,7 @@ export default function SoportePanel({ rooms = [], initialRoom = '' }) {
 
           <ul className="soporte-list">
             {filtrados.map((reporte) => (
-              <li key={reporte.id} className="soporte-card">
+              <li key={reporte.id} className={`soporte-card${reporte.escaladoAdmin && !reporte.revisadoAdmin ? ' escalada' : ''}`}>
                 <div className="soporte-card-top">
                   <div className="soporte-card-title">
                     <span className="soporte-id">#{reporte.id}</span>
@@ -177,6 +230,8 @@ export default function SoportePanel({ rooms = [], initialRoom = '' }) {
                     <span className={reporte.origen === 'LIMPIEZA' ? 'soporte-origen limpieza' : 'soporte-origen cliente'}>
                       {reporte.origen === 'LIMPIEZA' ? 'Limpieza' : 'Cliente'}
                     </span>
+                    {reporte.escaladoAdmin && !reporte.revisadoAdmin && <span className="soporte-nuevo">Aviso a administración</span>}
+                    {reporte.escaladoAdmin && reporte.revisadoAdmin && <span className="soporte-fecha">✓ Revisada por administración</span>}
                   </div>
                   <div className="soporte-badges">
                     <span className={PRIORIDAD_CLASE[reporte.prioridad] || 'soporte-prioridad'}>{reporte.prioridad}</span>
@@ -195,6 +250,11 @@ export default function SoportePanel({ rooms = [], initialRoom = '' }) {
                   <span className="soporte-fecha">{fmtFecha(reporte.creadoEn)}</span>
                 </div>
                 <div className="soporte-card-actions">
+                  {esAdmin && reporte.escaladoAdmin && !reporte.revisadoAdmin && (
+                    <button className="btn-secondary" disabled={updating} onClick={() => marcarRevisado(reporte.id)}>
+                      <Eye size={14} /> Marcar como visto
+                    </button>
+                  )}
                   {reporte.estado === 'PENDIENTE' && (
                     <button className="btn-secondary" disabled={updating} onClick={() => moverEstado(reporte.id, 'EN_ATENCION')}>Marcar en atención</button>
                   )}

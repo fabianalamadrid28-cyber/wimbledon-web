@@ -4,6 +4,7 @@ import com.wimbledon.backend.enums.EstadoHabitacion;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "habitaciones")
@@ -48,4 +49,7 @@ public class Habitacion {
     private boolean tieneCocheraDirecta;
     
     private String urlImagen;
+
+    /** Momento en que empezó la limpieza en curso (null si no hay una). Alimenta el cronómetro del panel. */
+    private LocalDateTime limpiezaInicio;
 }

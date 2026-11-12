@@ -13,6 +13,7 @@ USE `wimbledon_db`;
 -- Desactivar temporalmente verificación de claves foráneas para recreación limpia
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS `limpieza_registros`;
 DROP TABLE IF EXISTS `soporte_reportes`;
 DROP TABLE IF EXISTS `reservas`;
 DROP TABLE IF EXISTS `habitaciones`;
@@ -54,7 +55,8 @@ CREATE TABLE `habitaciones` (
   `tiene_pole_dance` BOOLEAN NOT NULL DEFAULT FALSE,
   `tiene_sillon_tantrico` BOOLEAN NOT NULL DEFAULT FALSE,
   `tiene_cochera_directa` BOOLEAN NOT NULL DEFAULT FALSE,
-  `url_imagen` VARCHAR(255) DEFAULT NULL
+  `url_imagen` VARCHAR(255) DEFAULT NULL,
+  `limpieza_inicio` DATETIME DEFAULT NULL -- inicio de la limpieza en curso (cronómetro del panel)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==============================================================================
@@ -100,10 +102,38 @@ CREATE TABLE `soporte_reportes` (
   `prioridad` ENUM('ALTA', 'MEDIA', 'BAJA') NOT NULL DEFAULT 'MEDIA',
   `descripcion` TEXT NOT NULL,
   `estado` ENUM('PENDIENTE', 'EN_ATENCION', 'RESUELTO') NOT NULL DEFAULT 'PENDIENTE',
+  `escalado_admin` BOOLEAN NOT NULL DEFAULT FALSE, -- TRUE si lo generó un cliente: administración debe enterarse
+  `revisado_admin` BOOLEAN NOT NULL DEFAULT FALSE, -- TRUE cuando administración ya lo vio
   `creado_en` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   INDEX `idx_soporte_estado_creado` (`estado`, `creado_en`),
   INDEX `idx_soporte_habitacion` (`habitacion`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ==============================================================================
+-- 5. TABLA: limpieza_registros
+-- Tiempo de demora de cada limpieza: se abre al pasar la habitación a EN_PROCESO
+-- y se cierra al pasar a LISTA (duracion_segundos = fin - inicio)
+-- ==============================================================================
+CREATE TABLE `limpieza_registros` (
+  `id` BIGINT AUTO_INCREMENT PRIMARY KEY,
+  `habitacion_numero` VARCHAR(50) NOT NULL,
+  `personal` VARCHAR(255) DEFAULT NULL,
+  `inicio` DATETIME NOT NULL,
+  `fin` DATETIME DEFAULT NULL,
+  `duracion_segundos` BIGINT DEFAULT NULL,
+  `observaciones` VARCHAR(500) DEFAULT NULL,
+  INDEX `idx_limpieza_habitacion` (`habitacion_numero`),
+  INDEX `idx_limpieza_fin` (`fin`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------------------------
+-- SOLO si ya tienes la base creada (sin volver a correr todo el script):
+-- ALTER TABLE `habitaciones`      ADD COLUMN `limpieza_inicio` DATETIME DEFAULT NULL;
+-- ALTER TABLE `soporte_reportes`  ADD COLUMN `escalado_admin` BOOLEAN NOT NULL DEFAULT FALSE,
+--                                 ADD COLUMN `revisado_admin` BOOLEAN NOT NULL DEFAULT FALSE;
+-- UPDATE `soporte_reportes` SET `escalado_admin` = TRUE WHERE `origen` = 'CLIENTE';
+-- (la tabla limpieza_registros la crea Hibernate sola con ddl-auto=update)
+-- ------------------------------------------------------------------------------
 -- ==============================================================================
 -- INSERCIÓN DE DATOS: USUARIOS Y ROLES MAPEADOS
 -- Contraseñas de prueba fáciles de recordar para el entorno de desarrollo

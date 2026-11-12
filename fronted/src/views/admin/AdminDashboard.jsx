@@ -20,6 +20,7 @@ import { LineChartSvg, BarChartSvg, StatusDonutChartSvg } from '../../components
 import EditRoomModal from '../../components/modals/EditRoomModal';
 import PdfReportModal from '../../components/modals/PdfReportModal';
 import GuestDetailModal from '../../components/modals/GuestDetailModal';
+import TiemposLimpieza from '../../components/TiemposLimpieza';
 
 export default function AdminDashboard({ 
   currentTab = 'inicio', 
@@ -568,6 +569,19 @@ export default function AdminDashboard({
               <StatusDonutChartSvg />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Tiempos de limpieza (los registra el personal de limpieza al iniciar y finalizar cada aseo) */}
+      {currentTab === 'reportes' && (
+        <div style={{ marginTop: '24px' }}>
+          <div className="dash-page-header">
+            <div>
+              <h1 style={{ fontSize: '20px' }}>Tiempos de limpieza</h1>
+              <p>Cuánto demora cada habitación en quedar lista y el promedio del personal.</p>
+            </div>
+          </div>
+          <TiemposLimpieza rooms={rooms} compact />
         </div>
       )}
 

@@ -14,7 +14,9 @@ public record SoporteReporteResponse(
         String prioridad,
         String descripcion,
         String estado,
-        String creadoEn
+        String creadoEn,
+        boolean escaladoAdmin,
+        boolean revisadoAdmin
 ) {
     private static final DateTimeFormatter FORMATO = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
@@ -29,7 +31,9 @@ public record SoporteReporteResponse(
                 entity.getPrioridad().name(),
                 entity.getDescripcion(),
                 entity.getEstado().name(),
-                entity.getCreadoEn() != null ? entity.getCreadoEn().format(FORMATO) : null
+                entity.getCreadoEn() != null ? entity.getCreadoEn().format(FORMATO) : null,
+                entity.isEscaladoAdmin(),
+                entity.isRevisadoAdmin()
         );
     }
 }

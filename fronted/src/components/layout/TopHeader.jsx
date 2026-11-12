@@ -10,7 +10,8 @@ export default function TopHeader({
   notifications = [],
   onMarkAllRead,
   onClearNotifications,
-  onOpenCheckInValidation
+  onOpenCheckInValidation,
+  onOpenIncidencias
 }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -43,6 +44,7 @@ export default function TopHeader({
       case 'limpieza':
         return <Sparkles size={16} color="#f59e0b" />;
       case 'mantenimiento':
+      case 'incidencia':
         return <AlertCircle size={16} color="#ef4444" />;
       case 'reserva':
       default:
@@ -210,6 +212,10 @@ export default function TopHeader({
                     onClick={() => {
                       if (n.tipo === 'checkin' && onOpenCheckInValidation) {
                         onOpenCheckInValidation();
+                      }
+                      if (n.tipo === 'incidencia' && onOpenIncidencias) {
+                        onOpenIncidencias();
+                        setIsDropdownOpen(false);
                       }
                     }}
                   >

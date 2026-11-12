@@ -61,7 +61,13 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/habitaciones", "/api/v1/habitaciones/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/reservas").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/soporte").permitAll()
+                // Incidencias de clientes escaladas a administración: solo ADMIN
+                .requestMatchers(HttpMethod.GET, "/api/v1/soporte/escaladas").hasAnyRole(ADMIN, SUPER)
+                .requestMatchers(HttpMethod.PATCH, "/api/v1/soporte/*/revisado").hasAnyRole(ADMIN, SUPER)
                 .requestMatchers("/api/v1/soporte", "/api/v1/soporte/**").hasAnyRole(ADMIN, SUPER, RECEPCION, LIMPIEZA)
+
+                // Tiempos de limpieza: lo ve el personal y administración
+                .requestMatchers("/api/v1/limpiezas", "/api/v1/limpiezas/**").hasAnyRole(ADMIN, SUPER, RECEPCION, LIMPIEZA)
 
                 // Gestión de cuentas: solo ADMIN
                 .requestMatchers("/api/v1/usuarios", "/api/v1/usuarios/**").hasAnyRole(ADMIN, SUPER)
