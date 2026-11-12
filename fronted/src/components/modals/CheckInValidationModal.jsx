@@ -64,28 +64,42 @@ export default function CheckInValidationModal({
   const [ingresoValidado, setIngresoValidado] = useState(false);
   const [mensajeError, setMensajeError] = useState('');
 
+  // Reinicia el formulario solo al abrir el modal o al cambiar de reserva.
+  // No debe depender de `reservations`: el panel se sincroniza cada 5 s y
+  // borraba el PIN mientras el recepcionista lo estaba escribiendo.
   useEffect(() => {
-    if (isOpen) {
-      if (initialReservation) {
-        setSelectedResId(String(initialReservation.id));
-        setCodigoQrInput(initialReservation.tokenQr || initialReservation.codigo || '');
-      } else {
-        const candidatas = reservations.filter(r => 
-          r.estado === 'Confirmada' || r.estado === 'Pendiente'
-        );
-        if (candidatas.length > 0) {
-          setSelectedResId(String(candidatas[0].id));
-          setCodigoQrInput(candidatas[0].tokenQr || candidatas[0].codigo || '');
-        }
-      }
-      setIngresoValidado(false);
-      setGpsVerificado(false);
-      setGpsError(null);
-      setPinVerificado(false);
-      setPinTotemInput('');
-      setMensajeError('');
+    if (!isOpen) return;
+
+    setIngresoValidado(false);
+    setGpsVerificado(false);
+    setGpsError(null);
+    setPinVerificado(false);
+    setPinTotemInput('');
+    setMensajeError('');
+
+    if (initialReservation?.id != null) {
+      setSelectedResId(String(initialReservation.id));
+      setCodigoQrInput(initialReservation.tokenQr || initialReservation.codigo || '');
+    } else {
+      setSelectedResId('');
+      setCodigoQrInput('');
     }
-  }, [isOpen, initialReservation, reservations]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initialReservation?.id]);
+
+  // Si el modal se abrió sin una reserva concreta, selecciona la primera
+  // disponible cuando los datos terminen de cargar. No toca el PIN escrito.
+  useEffect(() => {
+    if (!isOpen || initialReservation?.id != null || selectedResId) return;
+
+    const candidatas = reservations.filter(r =>
+      r.estado === 'Confirmada' || r.estado === 'Pendiente'
+    );
+    if (candidatas.length > 0) {
+      setSelectedResId(String(candidatas[0].id));
+      setCodigoQrInput(candidatas[0].tokenQr || candidatas[0].codigo || '');
+    }
+  }, [isOpen, initialReservation?.id, reservations, selectedResId]);
 
   if (!isOpen) return null;
 
@@ -505,9 +519,22 @@ export default function CheckInValidationModal({
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input
                         type="text"
+                        name="pin-porteria"
+                        aria-label="PIN del sensor de portería"
                         placeholder="PIN (ej: WIMB-2025)"
                         value={pinTotemInput}
                         onChange={(e) => setPinTotemInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleVerificarPin();
+                          }
+                        }}
+                        autoComplete="off"
+                        autoCorrect="off"
+                        autoCapitalize="characters"
+                        spellCheck={false}
+                        maxLength={32}
                         style={{
                           padding: '6px 10px',
                           borderRadius: '6px',
@@ -516,7 +543,8 @@ export default function CheckInValidationModal({
                           color: '#ffffff',
                           fontSize: '12px',
                           width: '140px',
-                          textTransform: 'uppercase'
+                          textTransform: 'uppercase',
+                          cursor: 'text'
                         }}
                       />
                       <button
