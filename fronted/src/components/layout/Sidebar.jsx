@@ -11,10 +11,12 @@ import {
   Sparkles, 
   Wrench,
   KeyRound,
-  Home
+  Home,
+  Timer,
+  BellRing
 } from 'lucide-react';
 
-export default function Sidebar({ currentRole, currentTab, setCurrentTab, onLogout, onGoToLanding, user }) {
+export default function Sidebar({ currentRole, currentTab, setCurrentTab, onLogout, onGoToLanding, user, badges = {} }) {
   // Navigation menu items based on role
   const getNavItems = () => {
     switch (currentRole) {
@@ -23,6 +25,7 @@ export default function Sidebar({ currentRole, currentTab, setCurrentTab, onLogo
           { id: 'inicio', label: 'Inicio', icon: LayoutDashboard },
           { id: 'reservas', label: 'Reservas', icon: CalendarCheck },
           { id: 'habitaciones', label: 'Habitaciones', icon: DoorClosed },
+          { id: 'incidencias', label: 'Incidencias', icon: BellRing },
           { id: 'reportes', label: 'Reportes', icon: BarChart3 },
           { id: 'usuarios', label: 'Usuarios', icon: Users }
         ];
@@ -40,6 +43,7 @@ export default function Sidebar({ currentRole, currentTab, setCurrentTab, onLogo
           { id: 'inicio', label: 'Tablero de Aseo', icon: Sparkles },
           { id: 'habitaciones', label: 'Habitaciones', icon: DoorClosed },
           { id: 'checklists', label: 'Checklists de Aseo', icon: CheckSquare },
+          { id: 'tiempos', label: 'Tiempos de Limpieza', icon: Timer },
           { id: 'mantenimiento', label: 'Soporte de Habitaciones', icon: Wrench }
         ];
       default:
@@ -84,6 +88,7 @@ export default function Sidebar({ currentRole, currentTab, setCurrentTab, onLogo
             >
               <Icon size={19} />
               <span>{item.label}</span>
+              {badges[item.id] > 0 && <span className="nav-badge">{badges[item.id]}</span>}
             </button>
           );
         })}

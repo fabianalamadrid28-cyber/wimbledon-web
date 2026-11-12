@@ -28,6 +28,22 @@ public class SoporteController {
         return service.listar();
     }
 
+    /** Incidencias de clientes pendientes de revisión por administración. */
+    @GetMapping("/escaladas")
+    public List<SoporteReporteResponse> escaladas() {
+        return service.listarEscaladas();
+    }
+
+    /** Administración confirma que ya vio la incidencia. */
+    @PatchMapping("/{id}/revisado")
+    public ResponseEntity<?> marcarRevisado(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(service.marcarRevisado(id));
+        } catch (SoporteService.ReporteNoEncontradoException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("mensaje", ex.getMessage()));
+        }
+    }
+
     /**
      * Crea un reporte. Con sesión de empleado se acepta tal cual; desde el sitio público solo si
      * el documento corresponde a un huésped con reserva vigente en esa habitación.

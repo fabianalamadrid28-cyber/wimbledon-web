@@ -12,26 +12,37 @@ const INTERVALO_MS = 5000;
 export function useEstadosEnVivo({ onDatos, setRooms, setReservations, activo = true }) {
   const [error, setError] = useState(null);
   const [ultimaSync, setUltimaSync] = useState(null);
-  const enCurso = useRef(false);
+  const vuelo = useRef(null);      // consulta en curso (promesa)
+  const pendiente = useRef(false); // llegó otra petición de refresco mientras había una consulta en curso
   const alDatos = useRef(onDatos);
   alDatos.current = onDatos;
 
-  const refrescar = useCallback(async () => {
-    if (enCurso.current) return;
-    enCurso.current = true;
-    try {
-      const { rooms, reservas } = await api.refrescarTodo();
-      if (rooms && rooms.length > 0) {
-        alDatos.current(rooms, reservas);
-        setError(null);
-        setUltimaSync(new Date());
-      }
-    } catch (e) {
-      // Si el backend no está disponible en este ciclo, no bloqueamos la UI
-      setError(null);
-    } finally {
-      enCurso.current = false;
+  // Si ya hay una consulta en vuelo NO se descarta el refresco (antes se perdía y el panel mostraba
+  // datos viejos, por eso los botones "volvían atrás"): se repite al terminar y se descarta la
+  // respuesta vieja para que no pise el cambio recién hecho.
+  const refrescar = useCallback(() => {
+    if (vuelo.current) {
+      pendiente.current = true;
+      return vuelo.current;
     }
+    const ciclo = (async () => {
+      do {
+        pendiente.current = false;
+        try {
+          const { rooms, reservas } = await api.refrescarTodo();
+          if (!pendiente.current && rooms && rooms.length > 0) {
+            alDatos.current(rooms, reservas);
+            setError(null);
+            setUltimaSync(new Date());
+          }
+        } catch (e) {
+          // Si el backend no está disponible en este ciclo, no bloqueamos la UI
+          setError(null);
+        }
+      } while (pendiente.current);
+    })().finally(() => { vuelo.current = null; });
+    vuelo.current = ciclo;
+    return ciclo;
   }, []);
 
   useEffect(() => {
@@ -68,12 +79,9 @@ export function useEstadosEnVivo({ onDatos, setRooms, setReservations, activo = 
   const acciones = {
     editarReserva: (id, datos) => conResultado(() => api.editarReserva(id, datos)),
     extenderReserva: (id, horas, monto) => conResultado(() => api.extenderReserva(id, horas, monto)),
-    cambiarEstadoHabitacion: (id, estado) => {
-      if (setRooms) {
-        setRooms(prev => prev.map(r => (r.id === id || String(r.numero) === String(id)) ? { ...r, estado } : r));
-      }
-      return ejecutar(() => api.updateEstadoHabitacion(id, estado));
-    },
+    // Devuelve { ok, error }: el panel muestra el motivo si el servidor rechaza el cambio.
+    cambiarEstadoHabitacion: (id, estado, observaciones) =>
+      conResultado(() => api.updateEstadoHabitacion(id, estado, observaciones)),
     cambiarEstadoReserva: (id, estado) => {
       if (setReservations && setRooms) {
         setReservations(prev => {

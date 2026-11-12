@@ -518,7 +518,8 @@ export function normalizeRoom(room) {
     tieneSauna: Boolean(room.tieneSauna),
     tienePoleDance: Boolean(room.tienePoleDance),
     tieneSillonTantrico: Boolean(room.tieneSillonTantrico),
-    tieneCocheraDirecta: Boolean(room.tieneCocheraDirecta)
+    tieneCocheraDirecta: Boolean(room.tieneCocheraDirecta),
+    limpiezaInicio: room.limpiezaInicio || null // inicio de la limpieza en curso (cronómetro)
   };
 }
 
@@ -648,20 +649,21 @@ export const api = {
     } catch (e) {}
   },
 
-  async updateEstadoHabitacion(id, nuevoEstado) {
+  // El servidor es la fuente de verdad: si rechaza el cambio (409/400) se lanza el error para que el panel lo muestre.
+  async updateEstadoHabitacion(id, nuevoEstado, observaciones) {
+    let res;
     try {
-      const res = await apiFetch(`${API_BASE_URL}/habitaciones/${id}/estado`, {
+      res = await apiFetch(`${API_BASE_URL}/habitaciones/${id}/estado`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: nuevoEstado })
+        headers: JSON_HEADERS,
+        body: JSON.stringify({ estado: nuevoEstado, ...(observaciones ? { observaciones } : {}) })
       });
-      if (res.ok) {
-        return normalizeRoom(await res.json());
-      }
     } catch (e) {
-      console.warn('Backend API no disponible para updateEstadoHabitacion, actualizando estado en memoria local.', e);
+      throw new Error('Sin conexión con el servidor.');
     }
-    return { id, estado: String(nuevoEstado).toUpperCase() };
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.mensaje || 'No se pudo cambiar el estado de la habitación.');
+    return normalizeRoom(data);
   },
 
   // Reservas
@@ -815,6 +817,23 @@ export const api = {
       body: JSON.stringify({ estado })
     });
     return jsonOrThrow(res, 'No se pudo actualizar el estado del reporte.');
+  },
+
+  // Incidencias generadas por clientes que administración aún no revisa (solo ADMIN)
+  async listarIncidenciasEscaladas() {
+    const res = await apiFetch(`${API_BASE_URL}/soporte/escaladas`);
+    return jsonOrThrow(res, 'No se pudieron cargar las incidencias de clientes.');
+  },
+
+  async marcarIncidenciaRevisada(id) {
+    const res = await apiFetch(`${API_BASE_URL}/soporte/${id}/revisado`, { method: 'PATCH' });
+    return jsonOrThrow(res, 'No se pudo marcar la incidencia como revisada.');
+  },
+
+  // Historial de limpiezas terminadas con su demora: { registros, promedioSegundos, total }
+  async listarLimpiezas() {
+    const res = await apiFetch(`${API_BASE_URL}/limpiezas`);
+    return jsonOrThrow(res, 'No se pudo cargar el historial de limpiezas.');
   }
 };
 

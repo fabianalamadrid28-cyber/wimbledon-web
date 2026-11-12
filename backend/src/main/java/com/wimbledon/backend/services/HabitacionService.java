@@ -13,9 +13,11 @@ import java.util.Optional;
 public class HabitacionService {
 
     private final HabitacionRepository habitacionRepository;
+    private final LimpiezaService limpiezaService;
 
-    public HabitacionService(HabitacionRepository habitacionRepository) {
+    public HabitacionService(HabitacionRepository habitacionRepository, LimpiezaService limpiezaService) {
         this.habitacionRepository = habitacionRepository;
+        this.limpiezaService = limpiezaService;
     }
 
     public List<Habitacion> listarTodas() {
@@ -48,8 +50,7 @@ public class HabitacionService {
         if (datosActualizados.getCapacidad() != null) hab.setCapacidad(datosActualizados.getCapacidad());
         if (datosActualizados.getPiso() != null) hab.setPiso(datosActualizados.getPiso());
         if (datosActualizados.getEstado() != null) {
-            TransicionEstados.validar(hab.getEstado(), datosActualizados.getEstado());
-            hab.setEstado(datosActualizados.getEstado());
+            aplicarEstado(hab, datosActualizados.getEstado(), null, null);
         }
         if (datosActualizados.getUrlImagen() != null) hab.setUrlImagen(datosActualizados.getUrlImagen());
 
@@ -64,11 +65,34 @@ public class HabitacionService {
 
     @Transactional
     public Habitacion cambiarEstado(Long id, EstadoHabitacion nuevoEstado) {
+        return cambiarEstado(id, nuevoEstado, null, null);
+    }
+
+    /**
+     * Cambia el estado validando la transición. Si el cambio abre o cierra una limpieza
+     * (EN_PROCESO / LISTA) se registra el tiempo y quién la hizo.
+     */
+    @Transactional
+    public Habitacion cambiarEstado(Long id, EstadoHabitacion nuevoEstado, String personal, String observaciones) {
         Habitacion hab = habitacionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Habitación no encontrada con ID: " + id));
-        TransicionEstados.validar(hab.getEstado(), nuevoEstado);
-        hab.setEstado(nuevoEstado);
+        aplicarEstado(hab, nuevoEstado, personal, observaciones);
         return habitacionRepository.save(hab);
+    }
+
+    private void aplicarEstado(Habitacion hab, EstadoHabitacion nuevo, String personal, String observaciones) {
+        EstadoHabitacion actual = hab.getEstado();
+        TransicionEstados.validar(actual, nuevo);
+        if (actual == nuevo) return; // doble clic o dos paneles a la vez: no reinicia el cronómetro
+
+        if (nuevo == EstadoHabitacion.EN_PROCESO) {
+            limpiezaService.iniciar(hab, personal);
+        } else if (actual == EstadoHabitacion.EN_PROCESO && nuevo == EstadoHabitacion.LISTA) {
+            limpiezaService.finalizar(hab, personal, observaciones);
+        } else if (actual == EstadoHabitacion.EN_PROCESO) {
+            limpiezaService.cancelar(hab);
+        }
+        hab.setEstado(nuevo);
     }
 
     @Transactional

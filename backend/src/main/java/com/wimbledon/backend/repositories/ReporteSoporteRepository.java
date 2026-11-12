@@ -11,4 +11,7 @@ import java.util.List;
 public interface ReporteSoporteRepository extends JpaRepository<ReporteSoporte, Long> {
     List<ReporteSoporte> findAllByOrderByCreadoEnDesc();
     List<ReporteSoporte> findByEstadoOrderByCreadoEnDesc(EstadoSoporte estado);
+
+    /** Incidencias de clientes que administración aún no revisa. */
+    List<ReporteSoporte> findByEscaladoAdminTrueAndRevisadoAdminFalseOrderByCreadoEnDesc();
 }

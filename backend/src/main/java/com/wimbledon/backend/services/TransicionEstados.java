@@ -12,6 +12,7 @@ import java.util.Set;
  * Única fuente de verdad de los cambios de estado permitidos.
  *
  * Habitación: LIMPIEZA_PENDIENTE → EN_PROCESO → LISTA → (RESERVADA) → OCUPADA → LIMPIEZA_PENDIENTE (check-out).
+ *             Una habitación LISTA o DISPONIBLE se puede devolver a LIMPIEZA_PENDIENTE ("Marcar por limpiar").
  *             Mantenimiento se puede pedir desde cualquier estado y se sale hacia DISPONIBLE o LIMPIEZA_PENDIENTE.
  * Reserva:    PENDIENTE → CONFIRMADA → CHECKIN → FINALIZADA; PENDIENTE/CONFIRMADA → CANCELADA.
  * Repetir el estado actual es un no-op permitido (dos paneles pueden pulsar a la vez).
@@ -24,7 +25,7 @@ public final class TransicionEstados {
     static {
         HABITACION.put(EstadoHabitacion.DISPONIBLE, EnumSet.of(EstadoHabitacion.RESERVADA, EstadoHabitacion.OCUPADA, EstadoHabitacion.LIMPIEZA_PENDIENTE, EstadoHabitacion.MANTENIMIENTO));
         HABITACION.put(EstadoHabitacion.RESERVADA, EnumSet.of(EstadoHabitacion.OCUPADA, EstadoHabitacion.DISPONIBLE, EstadoHabitacion.MANTENIMIENTO));
-        HABITACION.put(EstadoHabitacion.LISTA, EnumSet.of(EstadoHabitacion.RESERVADA, EstadoHabitacion.OCUPADA, EstadoHabitacion.DISPONIBLE, EstadoHabitacion.MANTENIMIENTO));
+        HABITACION.put(EstadoHabitacion.LISTA, EnumSet.of(EstadoHabitacion.RESERVADA, EstadoHabitacion.OCUPADA, EstadoHabitacion.DISPONIBLE, EstadoHabitacion.LIMPIEZA_PENDIENTE, EstadoHabitacion.MANTENIMIENTO));
         HABITACION.put(EstadoHabitacion.OCUPADA, EnumSet.of(EstadoHabitacion.LIMPIEZA_PENDIENTE, EstadoHabitacion.MANTENIMIENTO));
         HABITACION.put(EstadoHabitacion.LIMPIEZA_PENDIENTE, EnumSet.of(EstadoHabitacion.EN_PROCESO, EstadoHabitacion.MANTENIMIENTO));
         HABITACION.put(EstadoHabitacion.EN_PROCESO, EnumSet.of(EstadoHabitacion.LISTA, EstadoHabitacion.LIMPIEZA_PENDIENTE, EstadoHabitacion.MANTENIMIENTO));

@@ -49,6 +49,14 @@ public class ReporteSoporte {
     @Column(nullable = false, length = 20)
     private EstadoSoporte estado;
 
+    /** true cuando el reporte lo generó un cliente: administración debe enterarse. */
+    @Column(name = "escalado_admin", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean escaladoAdmin;
+
+    /** true cuando un administrador ya vio la incidencia escalada. */
+    @Column(name = "revisado_admin", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean revisadoAdmin;
+
     @CreationTimestamp
     @Column(name = "creado_en", nullable = false, updatable = false)
     private LocalDateTime creadoEn;
