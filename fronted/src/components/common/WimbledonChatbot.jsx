@@ -16,6 +16,81 @@ import {
 import { chatStorageService } from '../../services/chatStorageService';
 import { bonosService } from '../../services/bonosService';
 
+// Helper para selección inteligente y automática de habitaciones según consulta
+function elegirHabitacionSegunQuery(query, roomsList) {
+  const q = String(query || '').toLowerCase();
+  const disponibles = (Array.isArray(roomsList) && roomsList.length > 0)
+    ? roomsList.filter(r => r.estado === 'DISPONIBLE')
+    : [];
+  const pool = disponibles.length > 0 ? disponibles : (roomsList || []);
+
+  if (pool.length === 0) {
+    return {
+      id: 101,
+      numero: '101',
+      piso: 1,
+      nombreTema: 'Suite Temática con Jacuzzi',
+      tipo: 'Suite',
+      precioBloque: 160.00,
+      tieneJacuzzi: true
+    };
+  }
+
+  // 1. Al azar / cualquiera / aleatoria / random
+  if (q.includes('azar') || q.includes('cualquiera') || q.includes('aleator') || q.includes('random')) {
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  // 2. Con Jacuzzi
+  if (q.includes('jacuzzi') || q.includes('tina') || q.includes('hidromasaje')) {
+    const jac = pool.filter(r => r.tieneJacuzzi || /jacuzzi/i.test(r.nombreTema || r.tipo));
+    if (jac.length > 0) return jac[Math.floor(Math.random() * jac.length)];
+  }
+
+  // 3. Presidencial / Sauna / VIP
+  if (q.includes('presidencial') || q.includes('sauna') || q.includes('vip') || q.includes('lujo')) {
+    const pres = pool.filter(r => /presidencial/i.test(r.nombreTema || r.tipo) || r.tieneSauna || r.piso === 3);
+    if (pres.length > 0) return pres[Math.floor(Math.random() * pres.length)];
+  }
+
+  // 4. Simple / Económica / Estándar
+  if (q.includes('simple') || q.includes('econom') || q.includes('barat') || q.includes('estandar')) {
+    const sim = pool.filter(r => /simple|estandar/i.test(r.nombreTema || r.tipo) || r.piso === 1);
+    if (sim.length > 0) return sim[Math.floor(Math.random() * sim.length)];
+  }
+
+  // 5. Cochera directa
+  if (q.includes('cochera') || q.includes('auto') || q.includes('carro')) {
+    const coch = pool.filter(r => r.tieneCocheraDirecta || r.piso === 1);
+    if (coch.length > 0) return coch[Math.floor(Math.random() * coch.length)];
+  }
+
+  // 6. Por defecto: Suite temática atractiva
+  const tematicas = pool.filter(r => r.tieneJacuzzi || r.piso === 2);
+  if (tematicas.length > 0) {
+    return tematicas[Math.floor(Math.random() * tematicas.length)];
+  }
+
+  return pool[0];
+}
+
+function detectarBloque(query) {
+  const q = String(query || '').toLowerCase();
+  if (q.includes('6 hora') || q.includes('6h') || q.includes('seis')) return '6 HORAS';
+  if (q.includes('12 hora') || q.includes('12h') || q.includes('doce')) return '12 HORAS';
+  if (q.includes('pernocte') || q.includes('noche') || q.includes('dormir') || q.includes('amanecer')) return 'PERNOCTE';
+  return 'PERNOCTE';
+}
+
+function detectarBono(query) {
+  const q = String(query || '').toLowerCase();
+  if (q.includes('frecuente')) return 'FRECUENTE35';
+  if (q.includes('romant')) return 'ROMANTICO40';
+  if (q.includes('vip') || q.includes('jacuzzi')) return 'VIP50';
+  if (q.includes('desayuno')) return 'DESAYUNO30';
+  return 'BIENVENIDA25';
+}
+
 export default function WimbledonChatbot({
   isOpen,
   setIsOpen,
@@ -77,6 +152,7 @@ export default function WimbledonChatbot({
     if (dniMatch) {
       const dni = dniMatch[0];
       const infoCliente = await bonosService.consultarCliente(dni);
+      const primerBono = (infoCliente.bonosDisponibles && infoCliente.bonosDisponibles[0]) || { codigo: 'FRECUENTE35' };
       return {
         text: `👑 **¡Consulta de Membresía Exitosa!**\n\n` +
               `• **Documento:** ${dni}\n` +
@@ -89,12 +165,67 @@ export default function WimbledonChatbot({
         quickReplies: ['Canjear Bono en Reserva', 'Ver Catálogo de Bonos', 'Ver Precios de Suites'],
         actionData: {
           tipo: 'bono_encontrado',
-          bono: infoCliente.bonosDisponibles[0]
+          bono: primerBono,
+          btnText: `🎁 Canjear Bono ${primerBono.codigo} en Reserva`
         }
       };
     }
 
-    // 2. Bonos / Puntos / Cliente frecuente
+    // 2. DETECCIÓN PRIORITARIA: PETICIÓN DE RESERVA AUTOMÁTICA O DIRECTA
+    // Atiende: "reservame una suite", "puedes reservarme una habitacion al azar", "reservar", "separa", "quiero reservar"
+    const esPeticionReserva = 
+      q.includes('reserva') || 
+      q.includes('reservar') || 
+      q.includes('reservame') || 
+      q.includes('separar') || 
+      q.includes('separa') || 
+      q.includes('separame') || 
+      q.includes('al azar') || 
+      q.includes('aleator') ||
+      (q.includes('quiero') && (q.includes('habitacion') || q.includes('suite') || q.includes('cuarto') || q.includes('cama'))) ||
+      (q.includes('dame') && (q.includes('habitacion') || q.includes('suite') || q.includes('cuarto')));
+
+    if (esPeticionReserva) {
+      const habElegida = elegirHabitacionSegunQuery(query, rooms);
+      const bloque = detectarBloque(query);
+      const bonoCod = detectarBono(query);
+      const descMonto = bonoCod === 'VIP50' ? 50 : (bonoCod === 'ROMANTICO40' ? 40 : (bonoCod === 'FRECUENTE35' ? 35 : 25));
+
+      // Disparar automáticamente la apertura del formulario con los datos preseleccionados
+      setTimeout(() => {
+        setIsOpen(false);
+        if (typeof onOpenBooking === 'function') {
+          onOpenBooking({
+            room: habElegida,
+            rate: bloque,
+            promoCode: bonoCod
+          });
+        }
+      }, 1000);
+
+      const nombreHab = habElegida.nombreTema || habElegida.nombre || `Suite ${habElegida.tipo || ''}`;
+      const numHab = habElegida.numero || '101';
+      const pisoHab = habElegida.piso || 1;
+
+      return {
+        text: `🏨✨ **¡Reserva preparada automáticamente!**\n\n` +
+              `He configurado tu reserva con las mejores condiciones disponibles:\n` +
+              `• **Habitación:** **N° ${numHab} - ${nombreHab}** (Piso ${pisoHab})\n` +
+              `• **Modalidad:** **${bloque}**\n` +
+              `• **Bono Aplicado:** **${bonoCod}** (-S/ ${descMonto}.00 de descuento exclusivo)\n\n` +
+              `⚡ *Abriendo tu formulario de confirmación en pantalla...*`,
+        quickReplies: ['Confirmar Reserva Ahora', 'Consultar mis Bonos VIP', 'Ver Suites y Precios'],
+        actionData: {
+          tipo: 'abrir_reserva_automatica',
+          room: habElegida,
+          rate: bloque,
+          promoCode: bonoCod,
+          btnText: `🏨 Confirmar Reserva Hab. ${numHab}`
+        }
+      };
+    }
+
+    // 3. Bonos / Puntos / Cliente frecuente (consultas de información)
     if (q.includes('bono') || q.includes('frecuente') || q.includes('punto') || q.includes('descuento') || q.includes('club') || q.includes('vip')) {
       return {
         text: `👑 **Club Wimbledon & Bonos de Cliente Frecuente**\n\n` +
@@ -105,24 +236,31 @@ export default function WimbledonChatbot({
               `🍽 **Bono Desayuno:** Código **DESAYUNO30** (S/ 30.00 dscto en consumos)\n\n` +
               `💡 *Para consultar tu saldo de puntos acumulados, escribe tu número de DNI (8 dígitos).*`,
         quickReplies: ['Abrir Club de Bonos', 'Canjear Bono en Reserva', 'Ver Tarifas por Bloques'],
-        actionData: { tipo: 'abrir_bonos' }
+        actionData: { tipo: 'abrir_bonos', btnText: '👑 Ver Catálogo de Bonos VIP' }
       };
     }
 
-    // 3. Suites / Habitaciones / Precios
+    // 4. Suites / Habitaciones / Precios (consultas informativas)
     if (q.includes('habitacion') || q.includes('suite') || q.includes('precio') || q.includes('cuanto') || q.includes('cuesta') || q.includes('jacuzzi') || q.includes('sauna')) {
+      const suiteRandom = elegirHabitacionSegunQuery('suite', rooms);
       return {
         text: `✨ **Nuestras Suites Exclusivas en San Miguel**\n\n` +
               `🏨 **Suite Estándar / Delux:** Desde S/ 120 (Cama King, Smart TV, minibar, cochera).\n` +
               `♨ **Suite Temática con Jacuzzi:** Desde S/ 160 (Tina de hidromasaje, iluminación ambiental, sillón tántrico).\n` +
               `👑 **Suite Presidencial VIP:** Desde S/ 210 (Sauna seco, jacuzzi doble, pole dance y cochera privada).\n\n` +
-              `¿Te gustaría reservar una suite en este momento?`,
+              `¿Te gustaría que te reserve una suite en este momento?`,
         quickReplies: ['Reservar una Suite', 'Tarifas por Bloques', 'Paquetes Románticos'],
-        actionData: { tipo: 'ver_habitaciones' }
+        actionData: { 
+          tipo: 'abrir_reserva_automatica', 
+          room: suiteRandom, 
+          rate: 'PERNOCTE', 
+          promoCode: 'BIENVENIDA25',
+          btnText: `🏨 Reservar Suite Automáticamente`
+        }
       };
     }
 
-    // 4. Bloques de estancia y horarios
+    // 5. Bloques de estancia y horarios
     if (q.includes('bloque') || q.includes('hora') || q.includes('tarifa') || q.includes('pernocte') || q.includes('estancia')) {
       return {
         text: `⏰ **Modalidades de Estancia Disponibles:**\n\n` +
@@ -131,11 +269,11 @@ export default function WimbledonChatbot({
               `3️⃣ **Pernocte Completo:** Noche ininterrumpida hasta el mediodía siguiente.\n\n` +
               `Puedes seleccionar tu bloque preferido en el formulario de reserva con asignación automática de habitación.`,
         quickReplies: ['Reservar Bloque 6H', 'Reservar Pernocte', 'Consultar mis Bonos VIP'],
-        actionData: { tipo: 'bloques' }
+        actionData: { tipo: 'bloques', btnText: '⏰ Ver Tarifas y Horarios' }
       };
     }
 
-    // 5. Paquetes y festividades
+    // 6. Paquetes y festividades
     if (q.includes('paquete') || q.includes('romantico') || q.includes('aniversario') || q.includes('san valentin') || q.includes('cena') || q.includes('vino')) {
       return {
         text: `🥂 **Paquetes Especiales y Experiencias Románticas:**\n\n` +
@@ -145,11 +283,11 @@ export default function WimbledonChatbot({
               `✨ **Promo Entre Semana (+S/ 99):** Lunes a jueves, bloque de 6 horas con cóctel de cortesía.\n\n` +
               `¡Puedes añadir cualquiera de estos paquetes al momento de hacer tu reserva!`,
         quickReplies: ['Reservar Paquete Romántico', 'Consultar mis Bonos', 'Ver Formas de Pago'],
-        actionData: { tipo: 'paquetes' }
+        actionData: { tipo: 'paquetes', btnText: '🌹 Explorar Paquetes Románticos' }
       };
     }
 
-    // 6. Formas de Pago
+    // 7. Formas de Pago
     if (q.includes('pago') || q.includes('yape') || q.includes('plin') || q.includes('tarjeta') || q.includes('transferencia') || q.includes('efectivo')) {
       return {
         text: `💳 **Métodos de Pago 100% Seguros:**\n\n` +
@@ -159,29 +297,19 @@ export default function WimbledonChatbot({
               `• **Efectivo en Recepción:** Al momento de ingresar.\n\n` +
               `Todas las reservas digitales generan boleta electrónica inmediata con código QR para Check-In express.`,
         quickReplies: ['Quiero Reservar Ahora', 'Consultar mis Bonos VIP'],
-        actionData: { tipo: 'pagos' }
+        actionData: { tipo: 'pagos', btnText: '💳 Formas de Pago Disponibles' }
       };
     }
 
-    // 7. Check-in, ubicación o cochera
+    // 8. Check-in, ubicación o cochera
     if (q.includes('check') || q.includes('donde') || q.includes('direccion') || q.includes('ubicacion') || q.includes('cochera') || q.includes('llegar')) {
       return {
         text: `📍 **Ubicación & Check-In Discreto:**\n\n` +
               `• **Dirección:** San Miguel, Lima (Zona céntrica, segura y discreta).\n` +
               `• **Cochera Privada:** Acceso directo a suite sin contacto para máxima privacidad.\n` +
               `• **Check-In Digital:** Solo muestra tu código QR en portería y accede a tu suite al instante.`,
-        quickReplies: ['Reservar una Suite', 'Ver Precios']
-      };
-    }
-
-    // 8. Intención de reserva directa
-    if (q.includes('reservar') || q.includes('quiero') || q.includes('separar') || q.includes('disponibilidad')) {
-      return {
-        text: `🏨 **¡Perfecto! Vamos a coordinar tu reserva:**\n\n` +
-              `Elige el piso y temática que prefieras. Nuestro sistema asigna automáticamente una suite 100% desinfectada y lista.\n\n` +
-              `¿Tienes un código de bono de cliente frecuente? Podrás aplicarlo para obtener tu descuento.`,
-        quickReplies: ['Abrir Formulario de Reserva', 'Consultar mis Bonos'],
-        actionData: { tipo: 'abrir_reserva' }
+        quickReplies: ['Reservar una Suite', 'Ver Precios'],
+        actionData: { tipo: 'ver_habitaciones', btnText: '📍 Ubicación y Check-In' }
       };
     }
 
@@ -200,14 +328,25 @@ export default function WimbledonChatbot({
 
   const handleActionClick = (actionData) => {
     if (!actionData) return;
-    if (actionData.tipo === 'abrir_reserva' || actionData.tipo === 'ver_habitaciones') {
+    if (actionData.tipo === 'abrir_reserva_automatica') {
       setIsOpen(false);
-      onOpenBooking();
+      if (typeof onOpenBooking === 'function') {
+        onOpenBooking({
+          room: actionData.room,
+          rate: actionData.rate,
+          promoCode: actionData.promoCode
+        });
+      }
+    } else if (actionData.tipo === 'abrir_reserva' || actionData.tipo === 'ver_habitaciones') {
+      setIsOpen(false);
+      const hab = actionData.room || elegirHabitacionSegunQuery('suite', rooms);
+      onOpenBooking({ room: hab });
     } else if (actionData.tipo === 'abrir_bonos') {
       if (onOpenBonosModal) onOpenBonosModal();
     } else if (actionData.tipo === 'bono_encontrado' && actionData.bono) {
       setIsOpen(false);
-      onOpenBooking({ initialPromoCode: actionData.bono.codigo });
+      const hab = elegirHabitacionSegunQuery('vip', rooms);
+      onOpenBooking({ room: hab, promoCode: actionData.bono.codigo });
     }
   };
 
@@ -412,22 +551,26 @@ export default function WimbledonChatbot({
                         type="button"
                         onClick={() => handleActionClick(m.actionData)}
                         style={{
-                          background: 'rgba(212, 175, 55, 0.15)',
+                          background: m.actionData.tipo === 'abrir_reserva_automatica' 
+                            ? 'linear-gradient(135deg, #D4AF37 0%, #b8860b 100%)' 
+                            : 'rgba(212, 175, 55, 0.15)',
                           border: '1px solid #D4AF37',
-                          color: '#D4AF37',
+                          color: m.actionData.tipo === 'abrir_reserva_automatica' ? '#0b1324' : '#D4AF37',
                           borderRadius: '8px',
-                          padding: '6px 12px',
+                          padding: m.actionData.tipo === 'abrir_reserva_automatica' ? '8px 16px' : '6px 12px',
                           fontSize: '12px',
-                          fontWeight: 600,
+                          fontWeight: 700,
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
+                          width: m.actionData.tipo === 'abrir_reserva_automatica' ? '100%' : 'auto',
+                          justifyContent: 'center',
                           transition: 'all 0.2s'
                         }}
                       >
                         <Sparkles size={13} />
-                        <span>Realizar Acción en el Sitio</span>
+                        <span>{m.actionData.btnText || 'Realizar Acción en el Sitio'}</span>
                         <ChevronRight size={13} />
                       </button>
                     </div>
@@ -443,9 +586,23 @@ export default function WimbledonChatbot({
                           onClick={() => {
                             if (reply === 'Abrir Club de Bonos' && onOpenBonosModal) {
                               onOpenBonosModal();
-                            } else if (reply === 'Quiero Reservar' || reply === 'Reservar una Suite' || reply === 'Canjear Bono en Reserva') {
+                            } else if (
+                              reply === 'Quiero Reservar' || 
+                              reply === 'Reservar una Suite' || 
+                              reply === 'Canjear Bono en Reserva' ||
+                              reply === 'Confirmar Reserva Ahora' ||
+                              reply === 'Quiero Reservar Ahora' ||
+                              reply === 'Abrir Formulario de Reserva' ||
+                              reply.startsWith('Reservar Bloque') ||
+                              reply.startsWith('Reservar Pernocte') ||
+                              reply.startsWith('Reservar Paquete') ||
+                              reply.startsWith('Reservar Tarifa')
+                            ) {
+                              // Reserva automática: asignar habitación al azar y abrir modal
+                              const habAuto = elegirHabitacionSegunQuery(reply, rooms);
+                              const bloqueAuto = reply.includes('6H') ? '6 HORAS' : (reply.includes('12H') ? '12 HORAS' : 'PERNOCTE');
                               setIsOpen(false);
-                              onOpenBooking();
+                              onOpenBooking({ room: habAuto, rate: bloqueAuto, promoCode: 'BIENVENIDA25' });
                             } else {
                               handleSendMessage(reply);
                             }
