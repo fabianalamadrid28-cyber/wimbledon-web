@@ -133,6 +133,7 @@ export default function DashboardContainer({
       checkOutDisplay: formData.checkOut,
       fechaCheckInISO: formData.fechaCheckInISO,
       fechaCheckOutISO: formData.fechaCheckOutISO,
+      horaEntrada: formData.horaEntradaProgramada,
       estado: 'Confirmada',
       total: formData.total,
       tarifaBase: formData.tarifaBase,
