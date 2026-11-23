@@ -214,16 +214,7 @@ export default function WimbledonChatbot({
   return (
     <>
       {/* Botón Flotante del Chatbot */}
-      <div 
-        style={{
-          position: 'fixed',
-          bottom: '28px',
-          right: '185px',
-          zIndex: 1040,
-          display: 'flex',
-          alignItems: 'center'
-        }}
-      >
+      <div className="chatbot-floating-dock">
         <button
           onClick={() => setIsOpen(!isOpen)}
           title="Asistente Virtual Wimbledon 24/7"

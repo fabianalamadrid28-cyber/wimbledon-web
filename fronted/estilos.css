@@ -1782,3 +1782,23 @@ section[id] {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ==========================================================================
+   16. BOTONES FLOTANTES: CHATBOT CONCIERGE & SOPORTE 24/7
+   ========================================================================== */
+.chatbot-floating-dock {
+  position: fixed;
+  bottom: 28px;
+  right: 235px;
+  z-index: 1040;
+  display: flex;
+  align-items: center;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 640px) {
+  .chatbot-floating-dock {
+    bottom: 84px;
+    right: 28px;
+  }
+}
