@@ -33,6 +33,8 @@ import RoomRatesPanel from './components/RoomRatesPanel';
 import { calcularPrecioBloque, precioDesdeTexto, formatearSoles } from './services/precios';
 import SoporteForm from './components/SoporteForm';
 import FloatingSupportModal from './components/modals/FloatingSupportModal';
+import WimbledonChatbot from './components/common/WimbledonChatbot';
+import BonosClienteModal from './components/modals/BonosClienteModal';
 import HABITACIONES_REALES from './data/habitaciones.json';
 
 /* ---------- DATOS COMPLETOS DE LA CARTA Y PROMOCIONES ---------- */
@@ -246,6 +248,8 @@ function App() {
   const [isMenuModalOpen, setIsMenuModalOpen] = useState(false);
   const [isValidationModalOpen, setIsValidationModalOpen] = useState(false);
   const [isSupportModalOpen, setIsSupportModalOpen] = useState(false);
+  const [isBonosModalOpen, setIsBonosModalOpen] = useState(false);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [reservaAValidar, setReservaAValidar] = useState(null);
 
   // Parámetros de Reserva Dinámicos
@@ -254,6 +258,7 @@ function App() {
   const [bookingRate, setBookingRate] = useState(null);
   const [bookingDate, setBookingDate] = useState(null);
   const [bookingAddons, setBookingAddons] = useState([]);
+  const [bookingPromoCode, setBookingPromoCode] = useState('');
 
   // Categoría seleccionada para desplegar carta
   const [selectedMenuCategory, setSelectedMenuCategory] = useState(MENU_CATEGORIES_DATA[0]);
@@ -361,12 +366,13 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
   };
 
   // Abrir Formulario de Reserva desde una habitación específica o tarifa
-  const handleOpenBooking = ({ room = null, rate = null, date = null, pkg = null, addons = [] }) => {
+  const handleOpenBooking = ({ room = null, rate = null, date = null, pkg = null, addons = [], promoCode = '' }) => {
     setBookingRoom(room);
     setBookingRate(rate);
     setBookingDate(date);
     setBookingPackage(pkg);
     setBookingAddons(addons);
+    if (promoCode) setBookingPromoCode(promoCode);
     setIsBookingModalOpen(true);
   };
 
@@ -480,6 +486,7 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
           <a href="#servicios" className="nav-item">Servicios</a>
           <a href="#ubicacion" className="nav-item">Ubicación</a>
           <a href="#soporte" className="nav-item" onClick={(e) => { e.preventDefault(); setIsSupportModalOpen(true); }}>Soporte</a>
+          <a href="#bonos" className="nav-item" onClick={(e) => { e.preventDefault(); setIsBonosModalOpen(true); }} style={{ color: '#D4AF37', fontWeight: 600 }}>👑 Bonos VIP</a>
           <a href="#faq" className="nav-item">Preguntas</a>
         </nav>
         <button 
@@ -955,13 +962,18 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
       {isBookingModalOpen && (
         <BookingModal
           isOpen={isBookingModalOpen}
-          onClose={() => setIsBookingModalOpen(false)}
+          onClose={() => {
+            setIsBookingModalOpen(false);
+            setBookingPromoCode('');
+          }}
           rooms={rooms}
           initialRoom={bookingRoom}
           initialPackage={bookingPackage}
           initialRate={bookingRate}
           initialDate={bookingDate}
           initialAddons={bookingAddons}
+          initialPromoCode={bookingPromoCode}
+          onOpenBonosModal={() => setIsBonosModalOpen(true)}
           onConfirmBooking={handleConfirmBooking}
         />
       )}
@@ -999,6 +1011,27 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
         isOpen={isSupportModalOpen}
         setIsOpen={setIsSupportModalOpen}
         rooms={rooms}
+      />
+
+      {/* ASISTENTE VIRTUAL CHATBOT WIMBLEDON CON ALMACENAMIENTO */}
+      <WimbledonChatbot
+        isOpen={isChatbotOpen}
+        setIsOpen={setIsChatbotOpen}
+        onOpenBooking={(options = {}) => {
+          handleOpenBooking(options);
+        }}
+        onOpenBonosModal={() => setIsBonosModalOpen(true)}
+        rooms={rooms}
+      />
+
+      {/* MODAL CLUB WIMBLEDON: BONOS DE CLIENTE FRECUENTE */}
+      <BonosClienteModal
+        isOpen={isBonosModalOpen}
+        onClose={() => setIsBonosModalOpen(false)}
+        onAplicarBonoEnReserva={(codigo) => {
+          setBookingPromoCode(codigo);
+          handleOpenBooking({ promoCode: codigo });
+        }}
       />
 
       {/* MODAL 3: DESPLIEGUE COMPLETO DE CARTA DEL MENÚ Y PROMOCIONES */}

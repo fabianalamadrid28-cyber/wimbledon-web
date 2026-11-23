@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, User, Phone, Mail, FileText, Sparkles, Check, Gift, Utensils, CreditCard, AlertTriangle, Layers, DoorClosed } from 'lucide-react';
+import { X, Calendar, Clock, User, Phone, Mail, FileText, Sparkles, Check, Gift, Utensils, CreditCard, AlertTriangle, Layers, DoorClosed, Crown, Tag } from 'lucide-react';
 import PaymentMethodSelector from './PaymentMethodSelector';
 import { getMetodoPago, REGEX_NUMERO_OPERACION } from '../../data/pagos';
 import { PISOS_INFO, getTematicasPorPiso, asignarHabitacionAutomatica } from '../../services/api';
 import { BLOQUES, calcularPrecioBloque } from '../../services/precios';
+import { bonosService } from '../../services/bonosService';
 
 export const FESTIVIDAD_PACKAGES = [
   { id: 'sanvalentin', nombre: 'San Valentín Inolvidable', precio: 299.00, desc: 'Pétalos, espumante Chandon, fresas con chocolate y late check-out.' },
@@ -32,6 +33,8 @@ export default function BookingModal({
   initialRate = null,
   initialDate = null,
   initialAddons = [],
+  initialPromoCode = '',
+  onOpenBonosModal = null,
   onConfirmBooking
 }) {
   const [selectedPiso, setSelectedPiso] = useState(1);
@@ -49,14 +52,25 @@ export default function BookingModal({
   const [numeroOperacion, setNumeroOperacion] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Bonos de Cliente Frecuente
+  const [codigoBono, setCodigoBono] = useState(initialPromoCode || '');
+  const [bonoAplicado, setBonoAplicado] = useState(null);
+  const [descuentoBono, setDescuentoBono] = useState(0);
+  const [mensajeBono, setMensajeBono] = useState('');
+  const [loadingBono, setLoadingBono] = useState(false);
+
   // Al abrir el modal, el pago empieza vacío
   useEffect(() => {
     if (isOpen) {
       setMetodoPago('');
       setNumeroOperacion('');
       setErrorMsg('');
+      if (initialPromoCode) {
+        setCodigoBono(initialPromoCode);
+        validarBonoConCodigo(initialPromoCode);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, initialPromoCode]);
 
   // Sincronizar estado inicial SOLO al abrir. No debe depender de `rooms`: esa lista se refresca
   // cada 10 s desde el backend y volver a ejecutar esto borraba el paquete y las promociones elegidas.
@@ -175,8 +189,37 @@ export default function BookingModal({
     ...selectedCartaPromos.filter(sel => !CARTA_PROMOTIONS.some(p => esMismaPromo(p, sel)))
   ];
 
-  // Total acumulado
-  const totalEstimado = basePrice + packagePrice + cartaTotal;
+  // Subtotal acumulado sin bono
+  const subtotalSinBono = basePrice + packagePrice + cartaTotal;
+  // Total con descuento de bono de cliente frecuente
+  const totalEstimado = Math.max(0, subtotalSinBono - descuentoBono);
+
+  const validarBonoConCodigo = async (codigoAProbar = null) => {
+    const cod = (codigoAProbar || codigoBono).trim();
+    if (!cod) {
+      setMensajeBono('Por favor ingresa un código de bono.');
+      return;
+    }
+    setLoadingBono(true);
+    const res = await bonosService.validarBono(cod, documentoHuesped, subtotalSinBono);
+    setLoadingBono(false);
+    if (res.valido) {
+      setBonoAplicado(res.bono);
+      setDescuentoBono(res.descuento);
+      setMensajeBono(res.mensaje);
+    } else {
+      setBonoAplicado(null);
+      setDescuentoBono(0);
+      setMensajeBono(res.mensaje);
+    }
+  };
+
+  const handleQuitarBono = () => {
+    setBonoAplicado(null);
+    setDescuentoBono(0);
+    setCodigoBono('');
+    setMensajeBono('');
+  };
 
   const togglePromo = (promo) => {
     setSelectedCartaPromos(prev => {
@@ -236,6 +279,8 @@ export default function BookingModal({
       fechaCheckOutISO: checkOut,
       paqueteFestividad: activePackage || null,
       itemsCarta: selectedCartaPromos,
+      bonoAplicado: bonoAplicado ? bonoAplicado.codigo : null,
+      descuentoBono: descuentoBono,
       total: totalEstimado,
       notasAdicionales: notasAdicionales.trim(),
       metodoPago: metodo.id,
@@ -602,10 +647,162 @@ export default function BookingModal({
             </div>
           </div>
 
-          {/* Sección 5: Forma de pago */}
+          {/* Sección 5: Bonos de Cliente Frecuente & Beneficios VIP */}
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h4 style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#D4AF37', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Crown size={15} /> 5. Bonos de Cliente Frecuente & Descuentos VIP
+              </h4>
+
+              {onOpenBonosModal && (
+                <button
+                  type="button"
+                  onClick={onOpenBonosModal}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#38bdf8',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    padding: 0
+                  }}
+                >
+                  ¿No tienes código? Ver mis Bonos
+                </button>
+              )}
+            </div>
+
+            <div style={{
+              background: '#111e38',
+              border: bonoAplicado ? '1px solid #10b981' : '1px solid #334155',
+              borderRadius: '10px',
+              padding: '14px 16px'
+            }}>
+              {!bonoAplicado ? (
+                <div>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <div style={{ position: 'relative', flex: 1 }}>
+                      <input
+                        type="text"
+                        placeholder="Ingresa tu código de bono (ej: FRECUENTE35, BIENVENIDA25)..."
+                        value={codigoBono}
+                        onChange={(e) => setCodigoBono(e.target.value.toUpperCase())}
+                        style={{
+                          width: '100%',
+                          padding: '10px 14px',
+                          borderRadius: '6px',
+                          background: '#1e293b',
+                          border: '1px solid #334155',
+                          color: '#ffffff',
+                          fontSize: '13px',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em'
+                        }}
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={loadingBono || !codigoBono.trim()}
+                      onClick={() => validarBonoConCodigo()}
+                      style={{
+                        background: codigoBono.trim() ? 'linear-gradient(135deg, #D4AF37, #b8860b)' : '#334155',
+                        color: codigoBono.trim() ? '#0b1324' : '#94a3b8',
+                        border: 'none',
+                        borderRadius: '6px',
+                        padding: '0 20px',
+                        fontWeight: 700,
+                        fontSize: '13px',
+                        cursor: codigoBono.trim() ? 'pointer' : 'default',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {loadingBono ? 'Validando...' : 'Aplicar Bono'}
+                    </button>
+                  </div>
+
+                  {mensajeBono && (
+                    <div style={{ fontSize: '12px', color: '#f87171', marginTop: '8px' }}>
+                      {mensajeBono}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '11px', color: '#94a3b8' }}>Códigos sugeridos:</span>
+                    {['BIENVENIDA25', 'FRECUENTE35', 'ROMANTICO40', 'VIP50', 'DESAYUNO30'].map(cod => (
+                      <button
+                        key={cod}
+                        type="button"
+                        onClick={() => {
+                          setCodigoBono(cod);
+                          validarBonoConCodigo(cod);
+                        }}
+                        style={{
+                          background: '#1e293b',
+                          border: '1px dashed #D4AF37',
+                          color: '#D4AF37',
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        +{cod}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      background: '#10b981',
+                      color: '#ffffff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Check size={18} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>
+                        ¡Bono <span style={{ color: '#D4AF37' }}>{bonoAplicado.codigo}</span> Aplicado!
+                      </div>
+                      <div style={{ fontSize: '11.5px', color: '#10b981' }}>
+                        {bonoAplicado.titulo} · Descuento de S/ {descuentoBono.toFixed(2)} al total
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleQuitarBono}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.15)',
+                      border: '1px solid #ef4444',
+                      color: '#ef4444',
+                      padding: '4px 10px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Quitar Bono
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Sección 6: Forma de pago */}
           <div style={{ marginBottom: '24px' }}>
             <h4 style={{ fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#D4AF37', margin: '0 0 14px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <CreditCard size={15} /> 5. Forma de Pago *
+              <CreditCard size={15} /> 6. Forma de Pago *
             </h4>
             <PaymentMethodSelector
               metodoPago={metodoPago}
@@ -648,6 +845,9 @@ export default function BookingModal({
                 Tarifa Habitación ({selectedBloque}): <strong>S/ {basePrice.toFixed(2)}</strong>
                 {packagePrice > 0 && <span> · Festividad: <strong>S/ {packagePrice.toFixed(2)}</strong></span>}
                 {cartaTotal > 0 && <span> · Menú / Consumos: <strong>S/ {cartaTotal.toFixed(2)}</strong></span>}
+                {descuentoBono > 0 && (
+                  <span style={{ color: '#10b981', fontWeight: 'bold' }}> · Bono ({bonoAplicado?.codigo}): -S/ {descuentoBono.toFixed(2)}</span>
+                )}
               </div>
             </div>
 

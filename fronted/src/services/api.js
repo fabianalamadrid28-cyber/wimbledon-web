@@ -1,6 +1,6 @@
 // API service for Hotel Wimbledon backend integration with robust normalization and offline fallback
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
 
 // Todas las llamadas envían la cookie de sesión. Si el backend responde 401 (sesión vencida), se avisa a la app.
 const apiFetch = async (url, opts = {}) => {
