@@ -5,7 +5,15 @@ import { getMetodoPago, REGEX_NUMERO_OPERACION } from '../../data/pagos';
 import { PISOS_INFO, getTematicasPorPiso, asignarHabitacionAutomatica } from '../../services/api';
 import { BLOQUES, calcularPrecioBloque } from '../../services/precios';
 
-export const FESTIVIDAD_PACKAGES = [
+export // Galería: siempre al menos 3 fotos además de la principal de la habitación
+const FOTOS_EXTRA = ['/suite-simple.jpg', '/suite-vip.jpg', '/suite-tematica.jpg', '/suite-jacuzzi.jpg', '/suite-sauna.jpg', '/suite-cochera.jpg', '/galeria1.jpg', '/galeria2.jpg', '/galeria3.jpg', '/galeria4.jpg'];
+const getFotosHabitacion = (room) => {
+  const principal = room?.urlImagen || '/suite-simple.jpg';
+  const extras = FOTOS_EXTRA.filter(f => f !== principal).slice(0, 3);
+  return [principal, ...extras];
+};
+
+const FESTIVIDAD_PACKAGES = [
   { id: 'sanvalentin', nombre: 'San Valentín Inolvidable', precio: 299.00, desc: 'Pétalos, espumante Chandon, fresas con chocolate y late check-out.' },
   { id: 'halloween', nombre: 'Noche de Halloween', precio: 220.00, desc: 'Suite temática, cócteles de autor y ambientación especial para dos.' },
   { id: 'navidad', nombre: 'Navidad Privada', precio: 280.00, desc: 'Cena navideña para dos servida en la suite con brindis de medianoche.' },
@@ -39,6 +47,7 @@ export default function BookingModal({
   const [selectedBloque, setSelectedBloque] = useState('PERNOCTE');
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
+  const [horaEntrada, setHoraEntrada] = useState('14:00');
   const [nombreHuesped, setNombreHuesped] = useState('');
   const [documentoHuesped, setDocumentoHuesped] = useState('');
   const [telefonoWhatsApp, setTelefonoWhatsApp] = useState('');
@@ -234,6 +243,7 @@ export default function BookingModal({
       checkOut: checkOut.split('-').reverse().join('/'),
       fechaCheckInISO: checkIn,
       fechaCheckOutISO: checkOut,
+      horaEntradaProgramada: horaEntrada || '14:00',
       paqueteFestividad: activePackage || null,
       itemsCarta: selectedCartaPromos,
       total: totalEstimado,
@@ -446,6 +456,16 @@ export default function BookingModal({
                   style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', background: '#1e293b', border: '1px solid #334155', color: '#ffffff', fontSize: '13px' }}
                 />
               </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', color: '#cbd5e1', marginBottom: '4px' }}>Hora de Entrada</label>
+                <input
+                  type="time"
+                  value={horaEntrada}
+                  onChange={(e) => setHoraEntrada(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', background: '#1e293b', border: '1px solid #334155', color: '#ffffff', fontSize: '13px' }}
+                />
+              </div>
             </div>
 
             {/* Asignación Automática de Habitación Disponible */}
@@ -510,6 +530,15 @@ export default function BookingModal({
                     Por favor selecciona otro piso u otra temática que cuente con stock libre para poder continuar con la reserva.
                   </div>
                 </div>
+              </div>
+            )}
+
+            {roomAsignada && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px', marginTop: '12px' }}>
+                {getFotosHabitacion(roomAsignada).map((src, i) => (
+                  <img key={src} src={src} alt={`Habitación ${roomAsignada.numero} - foto ${i + 1}`} loading="lazy"
+                    style={{ width: '100%', height: '110px', objectFit: 'cover', borderRadius: '8px', border: '1px solid #334155' }} />
+                ))}
               </div>
             )}
           </div>
