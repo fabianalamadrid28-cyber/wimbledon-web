@@ -56,11 +56,12 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/auth/login", "/api/v1/auth/logout").permitAll()
                 .requestMatchers("/api/v1/auth/me").authenticated()
 
-                // Parte pública de la web: ver habitaciones, reservar en línea y reportar soporte
+                // Parte pública de la web: ver habitaciones, reservar en línea, bonos y soporte
                 // (el reporte público exige documento de un huésped con reserva vigente: lo valida SoporteService)
                 .requestMatchers(HttpMethod.GET, "/api/v1/habitaciones", "/api/v1/habitaciones/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/reservas").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/soporte").permitAll()
+                .requestMatchers("/api/v1/bonos", "/api/v1/bonos/**").permitAll()
                 // Incidencias de clientes escaladas a administración: solo ADMIN
                 .requestMatchers(HttpMethod.GET, "/api/v1/soporte/escaladas").hasAnyRole(ADMIN, SUPER)
                 .requestMatchers(HttpMethod.PATCH, "/api/v1/soporte/*/revisado").hasAnyRole(ADMIN, SUPER)

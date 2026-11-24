@@ -89,6 +89,12 @@ public class Reserva {
     @Column(name = "numero_operacion")
     private String numeroOperacion;
 
+    @Column(name = "bono_aplicado")
+    private String bonoAplicado;
+
+    @Column(name = "descuento_bono")
+    private BigDecimal descuentoBono;
+
     // 2. Agrega los Getters y Setters al final de la clase (antes de la última llave })
     public String getMetodoPago() {
         return metodoPago;
