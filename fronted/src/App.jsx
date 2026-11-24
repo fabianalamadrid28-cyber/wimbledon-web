@@ -654,6 +654,8 @@ function App() {
                       <span className="day" onClick={() => setDiaSeleccionadoCal('24/10/2026')}>24</span>
                       <span className="day" onClick={() => setDiaSeleccionadoCal('25/10/2026')}>25</span>
                       <span className="day" onClick={() => setDiaSeleccionadoCal('26/10/2026')}>26</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('27/10/2026')}>27</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('28/10/2026')}>28</span>
                       <span className="day today" onClick={() => setDiaSeleccionadoCal('29/10/2026')}>29</span>
                       <span className="day" onClick={() => setDiaSeleccionadoCal('30/10/2026')}>30</span>
                       <span className="day" onClick={() => setDiaSeleccionadoCal('31/10/2026')}>31</span>
@@ -681,6 +683,21 @@ function App() {
                       <span className="day" onClick={() => setDiaSeleccionadoCal('13/11/2026')}>13</span>
                       <span className="day" onClick={() => setDiaSeleccionadoCal('14/11/2026')}>14</span>
                       <span className="day" onClick={() => setDiaSeleccionadoCal('15/11/2026')}>15</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('16/11/2026')}>16</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('17/11/2026')}>17</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('18/11/2026')}>18</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('19/11/2026')}>19</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('20/11/2026')}>20</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('21/11/2026')}>21</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('22/11/2026')}>22</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('23/11/2026')}>23</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('24/11/2026')}>24</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('25/11/2026')}>25</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('26/11/2026')}>26</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('27/11/2026')}>27</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('28/11/2026')}>28</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('29/11/2026')}>29</span>
+                      <span className="day" onClick={() => setDiaSeleccionadoCal('30/11/2026')}>30</span>
                     </div>
                   </div>
                 </div>
