@@ -9,7 +9,8 @@ export default function EditRoomModal({ isOpen, onClose, room, onSave }) {
     capacidad: 2,
     estado: 'DISPONIBLE',
     descripcion: '',
-    urlImagen: '/suite-jacuzzi.jpg'
+    urlImagen: '/suite-jacuzzi.jpg',
+    tieneCocheraDirecta: false
   });
 
   useEffect(() => {
@@ -21,16 +22,25 @@ export default function EditRoomModal({ isOpen, onClose, room, onSave }) {
         capacidad: room.capacidad || 2,
         estado: room.estado || 'DISPONIBLE',
         descripcion: room.descripcion || 'Habitación suite con vista a la ciudad, cama king, TV y minibar.',
-        urlImagen: room.urlImagen || '/suite-jacuzzi.jpg'
+        urlImagen: room.urlImagen || '/suite-jacuzzi.jpg',
+        tieneCocheraDirecta: Boolean(room.tieneCocheraDirecta)
       });
+    } else {
+      // Habitación nueva: no heredar el parking de la última habitación editada
+      setFormData(prev => ({ ...prev, tieneCocheraDirecta: false }));
     }
-  }, [room]);
+  }, [room, isOpen]);
 
   if (!isOpen) return null;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleParkingChange = (e) => {
+    const checked = e.target.checked;
+    setFormData(prev => ({ ...prev, tieneCocheraDirecta: checked }));
   };
 
   const handleImageCycle = () => {
@@ -126,6 +136,20 @@ export default function EditRoomModal({ isOpen, onClose, room, onSave }) {
                     <option value="EN_PROCESO">En Proceso (limpieza)</option>
                     <option value="LISTA">Lista</option>
                   </select>
+                </div>
+
+                <div className="form-group">
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 600 }}>
+                    <input
+                      type="checkbox"
+                      checked={formData.tieneCocheraDirecta}
+                      onChange={handleParkingChange}
+                    />
+                    🚗 Parking directo a la habitación
+                  </label>
+                  <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '4px' }}>
+                    Marca esta opción si el huésped puede estacionar su vehículo junto a la habitación.
+                  </span>
                 </div>
               </div>
 

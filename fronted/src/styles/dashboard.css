@@ -1661,3 +1661,18 @@
   font-size: 13px;
   margin-bottom: 12px;
 }
+
+/* Insignia de parking directo (paneles de Administración y Recepción) */
+.badge-parking {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1e40af;
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
+  white-space: nowrap;
+}
