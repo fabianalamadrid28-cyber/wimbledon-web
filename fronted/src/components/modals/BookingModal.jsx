@@ -60,6 +60,8 @@ export default function BookingModal({
   const [metodoPago, setMetodoPago] = useState('');
   const [numeroOperacion, setNumeroOperacion] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  // Parking directo: si está marcado, solo se ofrecen habitaciones con cochera directa
+  const [soloParking, setSoloParking] = useState(false);
 
   // Bonos de Cliente Frecuente
   const [codigoBono, setCodigoBono] = useState(initialPromoCode || '');
@@ -85,6 +87,7 @@ export default function BookingModal({
   // cada 10 s desde el backend y volver a ejecutar esto borraba el paquete y las promociones elegidas.
   useEffect(() => {
     if (isOpen) {
+      setSoloParking(false);
       const today = new Date();
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
@@ -135,8 +138,11 @@ export default function BookingModal({
 
   if (!isOpen) return null;
 
+  // Sin parking marcado se usan todas las habitaciones (reserva normal); con parking, solo las de cochera directa
+  const roomsElegibles = soloParking ? rooms.filter(r => r.tieneCocheraDirecta) : rooms;
+
   // Temáticas del piso seleccionado
-  const tematicasPiso = getTematicasPorPiso(selectedPiso, rooms);
+  const tematicasPiso = getTematicasPorPiso(selectedPiso, roomsElegibles);
 
   // Asegurar que temaActivoNombre sea una temática válida del piso actual con disponibilidad
   let temaActivoNombre = selectedTema;
@@ -149,7 +155,7 @@ export default function BookingModal({
   const { asignada: roomAsignada, libresTemaEnPiso, totalTemaEnPiso } = asignarHabitacionAutomatica(
     selectedPiso, 
     temaActivoNombre, 
-    rooms
+    roomsElegibles
   );
 
   // Habitación activa y datos para cotización
@@ -164,7 +170,7 @@ export default function BookingModal({
   const handlePisoChange = (pisoStr) => {
     const nuevoPiso = parseInt(pisoStr, 10);
     setSelectedPiso(nuevoPiso);
-    const temasDelNuevoPiso = getTematicasPorPiso(nuevoPiso, rooms);
+    const temasDelNuevoPiso = getTematicasPorPiso(nuevoPiso, roomsElegibles);
     if (temasDelNuevoPiso.length > 0) {
       // Intentar preservar temática si existe en el nuevo piso Y tiene stock libre > 0
       const mismaConStock = temasDelNuevoPiso.find(t => 
@@ -257,7 +263,9 @@ export default function BookingModal({
     }
 
     if (!roomAsignada) {
-      setErrorMsg(`No hay habitaciones disponibles para la temática "${temaActivoNombre}" en el Piso ${selectedPiso}. Por favor selecciona otro piso o temática.`);
+      setErrorMsg(soloParking
+        ? `No hay habitaciones con parking directo disponibles en el Piso ${selectedPiso}. Selecciona otro piso o desmarca la opción de parking directo.`
+        : `No hay habitaciones disponibles para la temática "${temaActivoNombre}" en el Piso ${selectedPiso}. Por favor selecciona otro piso o temática.`);
       return;
     }
 
@@ -443,7 +451,7 @@ export default function BookingModal({
                   Temática de Suite (Piso {selectedPiso}) *
                 </label>
                 <select
-                  value={selectedTema}
+                  value={temaActivoNombre}
                   onChange={(e) => setSelectedTema(e.target.value)}
                   style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', background: '#1e293b', border: '1px solid #334155', color: '#ffffff', fontSize: '13px' }}
                 >
@@ -454,7 +462,7 @@ export default function BookingModal({
                   ))}
                 </select>
                 <span style={{ fontSize: '11px', color: '#94a3b8', marginTop: '3px', display: 'block' }}>
-                  {tematicasPiso.find(t => t.nombreTema === selectedTema)?.tipo} · Máx {tematicasPiso.find(t => t.nombreTema === selectedTema)?.capacidad || 2} personas
+                  {tematicasPiso.find(t => t.nombreTema === temaActivoNombre)?.tipo} · Máx {tematicasPiso.find(t => t.nombreTema === temaActivoNombre)?.capacidad || 2} personas
                 </span>
               </div>
 
@@ -479,6 +487,21 @@ export default function BookingModal({
                 </span>
               </div>
             </div>
+
+            {/* Opción: parking directo a la habitación */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px', cursor: 'pointer', fontSize: '13px', color: '#e2e8f0' }}>
+              <input
+                type="checkbox"
+                checked={soloParking}
+                onChange={(e) => setSoloParking(e.target.checked)}
+              />
+              🚗 Quiero parking directo a la habitación
+            </label>
+            {soloParking && tematicasPiso.length === 0 && (
+              <span style={{ fontSize: '11px', color: '#fca5a5', display: 'block', marginTop: '4px' }}>
+                No hay habitaciones con parking directo en el Piso {selectedPiso}. Prueba con otro piso.
+              </span>
+            )}
 
             {/* Fila de Fechas */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px', marginTop: '14px' }}>

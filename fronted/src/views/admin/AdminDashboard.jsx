@@ -44,6 +44,7 @@ export default function AdminDashboard({
   // Filters
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [roomSearch, setRoomSearch] = useState('');
+  const [soloParking, setSoloParking] = useState(false);
 
   // Handle room edit/create
   const handleOpenEditRoom = (room = null) => {
@@ -119,6 +120,7 @@ export default function AdminDashboard({
   const safeRooms = Array.isArray(rooms) ? rooms : [];
   const filteredRooms = safeRooms.filter(room => {
     if (!room) return false;
+    if (soloParking && !room.tieneCocheraDirecta) return false;
     const term = (roomSearch || searchTerm || '').toLowerCase();
     if (!term) return true;
     const numStr = String(room.numero || '').toLowerCase();
@@ -416,7 +418,7 @@ export default function AdminDashboard({
           </div>
 
           {/* Search Box */}
-          <div className="dash-card" style={{ padding: '16px 20px', marginBottom: '20px' }}>
+          <div className="dash-card" style={{ padding: '16px 20px', marginBottom: '20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
             <div className="dash-search-box" style={{ maxWidth: '380px', backgroundColor: '#fff' }}>
               <Search size={16} color="#64748b" />
               <input 
@@ -426,6 +428,15 @@ export default function AdminDashboard({
                 onChange={(e) => setRoomSearch(e.target.value)}
               />
             </div>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+              <input
+                type="checkbox"
+                checked={soloParking}
+                onChange={(e) => setSoloParking(e.target.checked)}
+              />
+              🚗 Solo con parking directo ({safeRooms.filter(r => r && r.tieneCocheraDirecta).length})
+            </label>
           </div>
 
           {/* Rooms Table */}
@@ -438,6 +449,7 @@ export default function AdminDashboard({
                     <th>Tipo</th>
                     <th>Precio/noche</th>
                     <th>Capacidad</th>
+                    <th>Parking directo</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                   </tr>
@@ -459,6 +471,11 @@ export default function AdminDashboard({
                       </td>
                       <td style={{ fontWeight: '600' }}>S/ {parseFloat(room.precioBloque || 120).toFixed(2)}</td>
                       <td>{room.capacidad || 2}</td>
+                      <td>
+                        {room.tieneCocheraDirecta
+                          ? <span className="badge-parking">🚗 Sí</span>
+                          : <span style={{ color: '#94a3b8' }}>—</span>}
+                      </td>
                       <td>
                         <span className={`badge-status ${String(room.estado || 'DISPONIBLE').toLowerCase()}`}>
                           {room.estado ? room.estado.charAt(0) + room.estado.slice(1).toLowerCase().replace('_', ' ') : 'Disponible'}

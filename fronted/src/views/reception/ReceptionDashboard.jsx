@@ -56,6 +56,7 @@ export default function ReceptionDashboard({
   const [reservasStatusFilter, setReservasStatusFilter] = useState('ALL');
   const [habitacionesPisoFilter, setHabitacionesPisoFilter] = useState('ALL');
   const [habitacionesStatusFilter, setHabitacionesStatusFilter] = useState('ALL');
+  const [habitacionesSoloParking, setHabitacionesSoloParking] = useState(false);
   const [huespedesSearch, setHuespedesSearch] = useState('');
 
   // Se guarda solo el id: así la ficha siempre muestra los datos actuales de la lista
@@ -205,12 +206,13 @@ export default function ReceptionDashboard({
   const filteredRoomsReception = safeRooms.filter(room => {
     const matchesFloor = habitacionesPisoFilter === 'ALL' || room.piso === parseInt(habitacionesPisoFilter);
     const matchesStatus = habitacionesStatusFilter === 'ALL' || room.estado.toUpperCase() === habitacionesStatusFilter.toUpperCase();
+    const matchesParking = !habitacionesSoloParking || Boolean(room.tieneCocheraDirecta);
     const term = (searchTerm || '').toLowerCase();
     const matchesSearch = !term ||
       room.numero.includes(term) ||
       room.tipo.toLowerCase().includes(term) ||
       (room.nombreTema && room.nombreTema.toLowerCase().includes(term));
-    return matchesFloor && matchesStatus && matchesSearch;
+    return matchesFloor && matchesStatus && matchesParking && matchesSearch;
   });
 
   // Huéspedes únicos registrados
@@ -1127,6 +1129,15 @@ export default function ReceptionDashboard({
                   <option value="MANTENIMIENTO">🔧 Mantenimiento</option>
                 </select>
 
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                  <input
+                    type="checkbox"
+                    checked={habitacionesSoloParking}
+                    onChange={(e) => setHabitacionesSoloParking(e.target.checked)}
+                  />
+                  🚗 Solo parking directo
+                </label>
+
                 <span style={{ fontSize: '13px', color: '#64748b' }}>
                   Mostrando <strong>{filteredRoomsReception.length}</strong> habitaciones
                 </span>
@@ -1186,6 +1197,12 @@ export default function ReceptionDashboard({
                     <div style={{ fontSize: '11px', color: '#64748b' }}>
                       Tarifa: <strong>S/ {room.precioBloque?.toFixed(2) || '120.00'}</strong>
                     </div>
+
+                    {room.tieneCocheraDirecta && (
+                      <div>
+                        <span className="badge-parking">🚗 Parking directo</span>
+                      </div>
+                    )}
 
                     <div style={{ marginTop: 'auto', paddingTop: '4px' }}>
                       <span className={`badge-status ${room.estado.toLowerCase().replace(/[\s-]/g, '')}`} style={{ width: '100%', textAlign: 'center', display: 'block' }}>
