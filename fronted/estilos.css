@@ -70,6 +70,7 @@ section[id] {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
   padding: 0 1.25rem;
   background-color: rgba(5, 5, 5, 0.9);
   -webkit-backdrop-filter: blur(10px);
@@ -80,27 +81,57 @@ section[id] {
 
 @media (min-width: 768px) {
   .navbar {
+    padding: 0 2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .navbar {
     padding: 0 3rem;
   }
 }
 
 .logo-brand {
+  flex: 0 0 auto;
   font-family: var(--font-serif);
-  font-size: 1.25rem;
+  font-size: clamp(1.05rem, 0.9rem + 0.45vw, 1.25rem);
   color: var(--gold-primary);
   letter-spacing: 0.2em;
   font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Botón hamburguesa (solo en pantallas donde la navegación no cabe) */
+.nav-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  margin-left: auto;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  color: var(--gold-primary);
+  background: transparent;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.nav-toggle:hover,
+.nav-toggle[aria-expanded="true"] {
+  background-color: rgba(212, 175, 55, 0.12);
+  border-color: var(--gold-primary);
 }
 
 .nav-menu {
   display: none;
 }
 
-@media (min-width: 768px) {
-  .nav-menu {
-    display: flex;
-    gap: 2rem;
-  }
+.nav-menu-cta {
+  display: none;
 }
 
 .nav-item {
@@ -117,6 +148,7 @@ section[id] {
 }
 
 .btn-panel-login {
+  flex: 0 0 auto;
   background: transparent;
   border: 1px solid var(--gold-primary);
   color: var(--gold-primary);
@@ -124,6 +156,7 @@ section[id] {
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
+  white-space: nowrap;
   cursor: pointer;
   transition: all 0.3s ease;
   border-radius: 2px;
@@ -132,6 +165,79 @@ section[id] {
 .btn-panel-login:hover {
   background-color: var(--gold-primary);
   color: var(--bg-dark-absolute);
+}
+
+@media (min-width: 1150px) {
+  .nav-toggle {
+    display: none;
+  }
+
+  .nav-menu {
+    display: flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+    gap: clamp(0.55rem, 1vw, 2rem);
+    min-width: 0;
+  }
+
+  .nav-item {
+    flex: 0 0 auto;
+    font-size: clamp(0.7rem, 0.35rem + 0.5vw, 0.875rem);
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 1149.98px) {
+  .nav-menu {
+    position: fixed;
+    top: var(--navbar-h);
+    left: 0;
+    right: 0;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    max-height: calc(100vh - var(--navbar-h));
+    max-height: calc(100dvh - var(--navbar-h));
+    padding: 0.5rem 1.25rem 1.25rem;
+    overflow-y: auto;
+    background-color: var(--bg-dark-absolute);
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.65);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+  }
+
+  .nav-menu.is-open {
+    display: flex;
+  }
+
+  .nav-item {
+    padding: 0.85rem 0.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    font-size: 0.95rem;
+    white-space: normal;
+  }
+
+  .nav-item:last-of-type {
+    border-bottom: none;
+  }
+
+  .navbar-cta {
+    display: none;
+  }
+
+  .nav-menu-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: stretch;
+    margin-top: 1rem;
+    padding: 0.7rem 1rem;
+    font-size: 0.8rem;
+  }
 }
 
 /* ==========================================================================
@@ -1211,7 +1317,8 @@ section[id] {
   background-color: var(--bg-dark-absolute);
   color: var(--text-muted);
   font-size: 0.75rem;
-  padding: 3rem 1.5rem;
+  /* Espacio inferior extra para que los botones flotantes no tapen los enlaces */
+  padding: 3rem 1.5rem 10rem;
   border-top: 1px solid var(--border-color);
 }
 
@@ -1256,6 +1363,18 @@ section[id] {
     flex-direction: row;
     text-align: left;
   }
+}
+
+/* Evita que los botones flotantes tapen el menú de navegación desplegado */
+body:has(.nav-menu.is-open) .navbar {
+  z-index: 1070;
+}
+
+body:has(.nav-menu.is-open) .chatbot-floating-dock,
+body:has(.nav-menu.is-open) .support-floating-dock {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 /* ==========================================================================

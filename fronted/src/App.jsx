@@ -20,7 +20,8 @@ import {
   ShieldCheck,
   LoaderCircle,
   CircleAlert,
-  Wrench
+  Wrench,
+  Menu
 } from 'lucide-react';
 import { INITIAL_ROOMS, INITIAL_RESERVATIONS, api, setPermisoReservas } from './services/api';
 import useLiveSync from './services/useLiveSync';
@@ -268,6 +269,7 @@ function App() {
 
   // UI Landing
   const [isSticky, setIsSticky] = useState(false);
+  const [isNavOpen, setIsNavOpen] = useState(false);
   const [verTodasHab, setVerTodasHab] = useState(false);
 const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null);
   const [faqAbierta, setFaqAbierta] = useState(0);
@@ -471,13 +473,29 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
       <header className="navbar">
         <div 
           className="logo-brand" 
-          onClick={handleReturnToLanding}
+          onClick={() => { setIsNavOpen(false); handleReturnToLanding(); }}
           style={{ cursor: 'pointer' }}
           title="Hotel Wimbledon - Volver al Inicio"
         >
           WIMBLEDON
         </div>
-        <nav className="nav-menu">
+
+        <button
+          type="button"
+          className="nav-toggle"
+          aria-label={isNavOpen ? 'Cerrar menú de navegación' : 'Abrir menú de navegación'}
+          aria-expanded={isNavOpen}
+          aria-controls="main-nav"
+          onClick={() => setIsNavOpen((open) => !open)}
+        >
+          {isNavOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
+
+        <nav
+          id="main-nav"
+          className={`nav-menu${isNavOpen ? ' is-open' : ''}`}
+          onClick={(e) => { if (e.target.closest('a, button')) setIsNavOpen(false); }}
+        >
           <a href="#" className="nav-item active">Información general</a>
           <a href="#galeria" className="nav-item">Galería</a>
           <a href="#habitaciones" className="nav-item">Alojamientos</a>
@@ -488,9 +506,19 @@ const [contenidoHabitacionActivo, setContenidoHabitacionActivo] = useState(null)
           <a href="#soporte" className="nav-item" onClick={(e) => { e.preventDefault(); setIsSupportModalOpen(true); }}>Soporte</a>
           <a href="#bonos" className="nav-item" onClick={(e) => { e.preventDefault(); setIsBonosModalOpen(true); }} style={{ color: '#D4AF37', fontWeight: 600 }}>👑 Bonos VIP</a>
           <a href="#faq" className="nav-item">Preguntas</a>
+          <button
+            type="button"
+            className="btn-panel-login nav-menu-cta"
+            onClick={handleOpenStaffPortal}
+            style={{ cursor: 'pointer' }}
+          >
+            {authUser ? 'Mi panel' : 'Panel Empleados'}
+          </button>
         </nav>
+
         <button 
-          className="btn-panel-login"
+          type="button"
+          className="btn-panel-login navbar-cta"
           onClick={handleOpenStaffPortal}
           style={{ cursor: 'pointer' }}
         >
