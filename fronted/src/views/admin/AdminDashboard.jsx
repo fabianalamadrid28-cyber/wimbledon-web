@@ -118,6 +118,11 @@ export default function AdminDashboard({
 
   // Defensive filtered rooms
   const safeRooms = Array.isArray(rooms) ? rooms : [];
+
+  // Una reserva tiene parking directo si su habitación asignada tiene cochera directa
+  const reservaTieneParking = (res) =>
+    safeRooms.some(r => r && String(r.numero) === String(res.habitacion) && r.tieneCocheraDirecta);
+
   const filteredRooms = safeRooms.filter(room => {
     if (!room) return false;
     if (soloParking && !room.tieneCocheraDirecta) return false;
@@ -266,7 +271,7 @@ export default function AdminDashboard({
                     {safeReservations.slice(0, 8).map((res) => (
                       <tr key={res.id}>
                         <td style={{ fontWeight: '600' }}>{res.huesped}</td>
-                        <td>Hab. {res.habitacion}</td>
+                        <td>Hab. {res.habitacion} {reservaTieneParking(res) && <span className="badge-parking" style={{ marginLeft: '6px' }}>🚗 Parking</span>}</td>
                         <td>{res.checkInDisplay || res.checkIn}</td>
                         <td>
                           <span className={`badge-status ${String(res.estado || '').toLowerCase().replace(/[\s-]/g, '')}`}>
@@ -351,7 +356,7 @@ export default function AdminDashboard({
                     <tr key={res.id}>
                       <td style={{ color: '#64748b', fontWeight: '500' }}>{res.idDisplay || res.codigo}</td>
                       <td style={{ fontWeight: '600' }}>{res.huesped}</td>
-                      <td>Hab. {res.habitacion}</td>
+                      <td>Hab. {res.habitacion} {reservaTieneParking(res) && <span className="badge-parking" style={{ marginLeft: '6px' }}>🚗 Parking</span>}</td>
                       <td>{res.checkInDisplay || res.checkIn}</td>
                       <td>{res.checkOutDisplay || res.checkOut}</td>
                       <td>
