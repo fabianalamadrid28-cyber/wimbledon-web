@@ -52,6 +52,10 @@ export default function ReceptionDashboard({
   const safeReservations = Array.isArray(reservations) ? reservations : [];
   const safeRooms = Array.isArray(rooms) ? rooms : [];
 
+  // Una reserva tiene parking directo si su habitación asignada tiene cochera directa
+  const reservaTieneParking = (res) =>
+    safeRooms.some(r => r && String(r.numero) === String(res.habitacion) && r.tieneCocheraDirecta);
+
   // Filtros internos
   const [reservasStatusFilter, setReservasStatusFilter] = useState('ALL');
   const [habitacionesPisoFilter, setHabitacionesPisoFilter] = useState('ALL');
@@ -483,6 +487,7 @@ export default function ReceptionDashboard({
                           <td style={{ fontWeight: '600' }}>{res.huesped}</td>
                           <td>
                             <strong>Hab. {res.habitacion}</strong>
+                            {reservaTieneParking(res) && <span className="badge-parking" style={{ marginLeft: '6px' }}>🚗 Parking</span>}
                           </td>
                           <td>{res.tipo}</td>
                           <td>{res.checkInDisplay || res.checkIn}</td>
@@ -697,7 +702,10 @@ export default function ReceptionDashboard({
                       upcomingCheckinsList.map((item) => (
                         <tr key={item.id}>
                           <td style={{ fontWeight: '600' }}>{item.huesped}</td>
-                          <td><strong>Hab. {item.habitacion}</strong></td>
+                          <td>
+                            <strong>Hab. {item.habitacion}</strong>
+                            {reservaTieneParking(item) && <span className="badge-parking" style={{ marginLeft: '6px' }}>🚗 Parking</span>}
+                          </td>
                           <td>{item.tipo}</td>
                           <td>
                             <span className={`badge-status ${String(item.estado || '').toLowerCase()}`}>
@@ -868,7 +876,10 @@ export default function ReceptionDashboard({
                         <td style={{ fontWeight: 700, color: '#334155' }}>{res.codigo || res.idDisplay}</td>
                         <td style={{ fontWeight: 600 }}>{res.huesped}</td>
                         <td style={{ fontSize: '12.5px', color: '#64748b' }}>{res.documento || '70123456'}</td>
-                        <td><strong style={{ color: '#2563eb' }}>Hab. {res.habitacion}</strong></td>
+                        <td>
+                          <strong style={{ color: '#2563eb' }}>Hab. {res.habitacion}</strong>
+                          {reservaTieneParking(res) && <span className="badge-parking" style={{ marginLeft: '6px' }}>🚗 Parking</span>}
+                        </td>
                         <td style={{ fontSize: '12.5px' }}>{res.tipo}</td>
                         <td style={{ fontSize: '12.5px' }}>{res.checkInDisplay || res.checkIn}</td>
                         <td style={{ fontSize: '12.5px' }}>{res.checkOutDisplay || res.checkOut}</td>
