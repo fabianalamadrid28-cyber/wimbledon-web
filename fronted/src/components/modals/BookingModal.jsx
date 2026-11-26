@@ -280,6 +280,39 @@ export default function BookingModal({
     }
     setErrorMsg('');
 
+    // Calcular la hora de salida según el bloque y la hora de entrada
+    const entradaParts = (horaEntrada || '14:00').split(':').map(Number);
+    let horaSalidaCalculada;
+    if (selectedBloque === '6 HORAS') {
+      const totalMinutos = entradaParts[0] * 60 + entradaParts[1] + 6 * 60;
+      horaSalidaCalculada = `${String(Math.floor(totalMinutos / 60) % 24).padStart(2, '0')}:${String(totalMinutos % 60).padStart(2, '0')}`;
+    } else if (selectedBloque === '12 HORAS') {
+      const totalMinutos = entradaParts[0] * 60 + entradaParts[1] + 12 * 60;
+      horaSalidaCalculada = `${String(Math.floor(totalMinutos / 60) % 24).padStart(2, '0')}:${String(totalMinutos % 60).padStart(2, '0')}`;
+    } else {
+      // PERNOCTE: salida a las 12:00 del día siguiente
+      horaSalidaCalculada = '12:00';
+    }
+
+    // Calcular la fecha de check-out correcta según el bloque
+    let fechaCheckOutFinal = checkOut;
+    if (selectedBloque === '6 HORAS' || selectedBloque === '12 HORAS') {
+      // Si la hora de salida cruza la medianoche, el check-out es el día siguiente al check-in
+      const totalMinutos = entradaParts[0] * 60 + entradaParts[1] + (selectedBloque === '6 HORAS' ? 6 : 12) * 60;
+      if (totalMinutos >= 24 * 60) {
+        const checkInDate = new Date(checkIn + 'T00:00:00');
+        checkInDate.setDate(checkInDate.getDate() + 1);
+        fechaCheckOutFinal = checkInDate.toISOString().split('T')[0];
+      } else {
+        fechaCheckOutFinal = checkIn; // mismo día
+      }
+    } else {
+      // PERNOCTE: check-out es el día siguiente al check-in
+      const checkInDate = new Date(checkIn + 'T00:00:00');
+      checkInDate.setDate(checkInDate.getDate() + 1);
+      fechaCheckOutFinal = checkInDate.toISOString().split('T')[0];
+    }
+
     const payload = {
       huesped: nombreHuesped.trim(),
       documento: documentoHuesped.trim(),
@@ -291,10 +324,11 @@ export default function BookingModal({
       tarifaBase: basePrice,
       bloque: selectedBloque,
       checkIn: checkIn.split('-').reverse().join('/'),
-      checkOut: checkOut.split('-').reverse().join('/'),
+      checkOut: fechaCheckOutFinal.split('-').reverse().join('/'),
       fechaCheckInISO: checkIn,
-      fechaCheckOutISO: checkOut,
+      fechaCheckOutISO: fechaCheckOutFinal,
       horaEntradaProgramada: horaEntrada || '14:00',
+      horaSalidaProgramada: horaSalidaCalculada,
       paqueteFestividad: activePackage || null,
       itemsCarta: selectedCartaPromos,
       bonoAplicado: bonoAplicado ? bonoAplicado.codigo : null,

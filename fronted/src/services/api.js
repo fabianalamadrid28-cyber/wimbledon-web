@@ -684,16 +684,26 @@ export const api = {
 
   async updateEstadoReserva(id, nuevoEstado) {
     try {
+      const estadoAPI = ESTADO_RESERVA_API[nuevoEstado] || String(nuevoEstado).toUpperCase();
       const res = await apiFetch(`${API_BASE_URL}/reservas/${id}/estado`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado: ESTADO_RESERVA_API[nuevoEstado] || String(nuevoEstado).toUpperCase() })
+        body: JSON.stringify({ estado: estadoAPI })
       });
       if (res.ok) {
         return normalizeReservation(await res.json(), 0);
       }
+      // Si el servidor rechaza el cambio (409/400), lanzar el error para que se muestre
+      const errorText = await res.text().catch(() => '');
+      if (!res.ok) {
+        throw new Error(errorText || `Error ${res.status} al cambiar estado de la reserva.`);
+      }
     } catch (e) {
-      console.warn('Backend API no disponible para updateEstadoReserva, actualizando estado en memoria local.', e);
+      if (e instanceof TypeError) {
+        console.warn('Backend API no disponible para updateEstadoReserva, actualizando estado en memoria local.', e);
+      } else {
+        throw e;
+      }
     }
     return { id, estado: nuevoEstado };
   },
@@ -742,10 +752,10 @@ export const api = {
         emailHuesped: reservaData.email || reservaData.emailHuesped || 'cliente@wimbledon.com',
         telefonoWhatsApp: reservaData.telefono || reservaData.telefonoWhatsApp || '+51 900 000 000',
         // El backend (LocalDate) espera yyyy-MM-dd; el formulario guarda dd/MM/yyyy
-       fechaCheckIn: reservaData.fechaCheckInISO || reservaData.fechaCheckIn,
-       fechaCheckOut: reservaData.fechaCheckOutISO || reservaData.fechaCheckOut,
+       fechaCheckIn: aFechaISO(reservaData.fechaCheckInISO || reservaData.fechaCheckIn),
+       fechaCheckOut: aFechaISO(reservaData.fechaCheckOutISO || reservaData.fechaCheckOut),
        horaEntradaProgramada: reservaData.horaEntradaProgramada || '14:00',
-       horaSalidaProgramada: reservaData.horaSalidaProgramada || '12:00',
+       horaSalidaProgramada: reservaData.horaSalidaProgramada || null,
        totalPago: reservaData.total || reservaData.totalPago || 250.00,
         bloqueSeleccionado: reservaData.bloque || reservaData.bloqueSeleccionado || 'PERNOCTE',
         notasAdicionales: reservaData.notasAdicionales || '',
